@@ -4,6 +4,13 @@ namespace tiny {
 
     class tinyc_frontend {
     public:
+        std::string parse(char const * source) {
+            return std::string{""};
+        }
+
+        std::string to_il(std::string && ast) {
+            return ast;
+        }
 
     }; // tinyc_frontend
 }
