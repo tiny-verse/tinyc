@@ -1,0 +1,9 @@
+#pragma once
+
+namespace tiny {
+
+    class tinyc_frontend {
+    public:
+
+    }; // tinyc_frontend
+}
