@@ -405,80 +405,53 @@ namespace tinyc {
     }
 
     void TypeChecker::visit(ASTIndex * ast) { 
-
+        Type * baseType = visitChild(ast->base);
+        if (! isPointer(baseType))
+            throw ParserError{STR("Expected pointer, but " << baseType->toString() << " found"), ast->location()};
+        Type * indexType = visitChild(ast->index);
+        if (indexType != getTypeInt() && indexType != getTypeChar())
+            throw ParserError{STR("Expected int or char, but " << indexType->toString() << " found"), ast->location()};
+        return ast->setType(dynamic_cast<Type::Pointer*>(baseType)->base());
     }
 
     void TypeChecker::visit(ASTMember * ast) { 
-
-    }
-
-    void TypeChecker::visit(ASTMemberPtr * ast) { 
-
-    }
-
-    void TypeChecker::visit(ASTCall * ast) { 
-
-    }
-
-    void TypeChecker::visit(ASTCast * ast) { 
-
-    }
-
-} // namespace tinyc
-
-
-#ifdef HAHA
-
-    Type * ASTIndex::typeCheck(TypeChecker & tc) {
-        Type * baseType = base->typeCheck(tc);
-        if (! tc.isPointer(baseType))
-            throw ParserError{STR("Expected pointer, but " << baseType->toString() << " found"), location()};
-        Type * indexType = index->typeCheck(tc);
-        if (indexType != tc.getTypeInt() && indexType != tc.getTypeChar())
-            throw ParserError{STR("Expected int or char, but " << indexType->toString() << " found"), location()};
-        type_ = dynamic_cast<Type::Pointer*>(baseType)->base();
-        return AST::typeCheck(tc);
-    }
-
-    Type * ASTMember::typeCheck(TypeChecker & tc) {
-        Type * baseType = base->typeCheck(tc);
+        Type * baseType = visitChild(ast->base);
         Type::Struct * type = dynamic_cast<Type::Struct*>(baseType);
         if (type == nullptr || ! type->isFullyDefined())
-            throw ParserError{STR("Only fully defined struct types can have members extracted, but " << baseType->toString() << " found"), location()};
-        type_ = type->getFieldType(member);
-        if (type_ == nullptr)
-            throw ParserError{STR("Field " << member.name() << " not defined in struct " << type->toString()), location()};
-        return AST::typeCheck(tc);
+            throw ParserError{STR("Only fully defined struct types can have members extracted, but " << baseType->toString() << " found"), ast->location()};
+        Type * t  = type->getFieldType(ast->member);
+        if (t == nullptr)
+            throw ParserError{STR("Field " << ast->member.name() << " not defined in struct " << type->toString()), ast->location()};
+        return ast->setType(t);    
     }
 
     /** The member ptr is similar to member, but we must also check that the base is a pointer first.
      */
-    Type * ASTMemberPtr::typeCheck(TypeChecker & tc) {
-        Type * baseType = base->typeCheck(tc);
+    void TypeChecker::visit(ASTMemberPtr * ast) { 
+        Type * baseType = visitChild(ast->base);
         Type::Pointer * basePtr = dynamic_cast<Type::Pointer*>(baseType);
         if (basePtr == nullptr)
-            throw ParserError{STR("Only pointers can appear on left side of -> operator, but " << baseType->toString() << " found"), location()};
+            throw ParserError{STR("Only pointers can appear on left side of -> operator, but " << baseType->toString() << " found"), ast->location()};
         Type::Struct * type = dynamic_cast<Type::Struct*>(basePtr->base());
         if (type == nullptr || ! type->isFullyDefined())
-            throw ParserError{STR("Only fully defined struct types can have members extracted, but " << basePtr->base()->toString() << " found"), location()};
-        type_ = type->getFieldType(member);
-        if (type_ == nullptr)
-            throw ParserError{STR("Field " << member.name() << " not defined in struct " << type->toString()), location()};
-        return AST::typeCheck(tc);
+            throw ParserError{STR("Only fully defined struct types can have members extracted, but " << basePtr->base()->toString() << " found"), ast->location()};
+        Type * t  = type->getFieldType(ast->member);
+        if (t == nullptr)
+            throw ParserError{STR("Field " << ast->member.name() << " not defined in struct " << type->toString()), ast->location()};
+        return ast->setType(t);
     }
 
-    Type * ASTCall::typeCheck(TypeChecker & tc) {
-        function->typeCheck(tc);
-        Type::Fun * f = tc.isFunctionPointer(function->type());
+    void TypeChecker::visit(ASTCall * ast) { 
+        visitChild(ast->function);
+        Type::Fun * f = isFunctionPointer(ast->function->type());
         if (f == nullptr)
-            throw ParserError{STR("Expected function, but value of " << function->type()->toString() << " found"), location()};
-        if (args.size() != f->numArgs())
-            throw ParserError{STR("Function of type " << f->toString() << " requires " << f->numArgs() << " arguments, but " << args.size() << " given"), location()};
-        for (size_t i = 0; i < args.size(); ++i)
-            if (args[i]->typeCheck(tc) != f->argType(i))
-                throw ParserError{STR("Type " << f->argType(i)->toString() << " expected for argument " << (i + 1) << ", but " << args[i]->type()->toString() << " found"), args[i]->location()};
-        type_ = f->returnType();
-        return AST::typeCheck(tc);
+            throw ParserError{STR("Expected function, but value of " << ast->function->type()->toString() << " found"), ast->location()};
+        if (ast->args.size() != f->numArgs())
+            throw ParserError{STR("Function of type " << f->toString() << " requires " << f->numArgs() << " arguments, but " << ast->args.size() << " given"), ast->location()};
+        for (size_t i = 0; i < ast->args.size(); ++i)
+            if (visitChild(ast->args[i]) != f->argType(i))
+                throw ParserError{STR("Type " << f->argType(i)->toString() << " expected for argument " << (i + 1) << ", but " << ast->args[i]->type()->toString() << " found"), ast->args[i]->location()};
+        return ast->setType(f->returnType());    
     }
 
     /** Makes sure that incompatible types are not casted.
@@ -486,20 +459,20 @@ namespace tinyc {
         - any pointer to any other pointer
         - any pod to any pod
         - integer to any pointer and any pointer to integer
-        */
-    Type * ASTCast::typeCheck(TypeChecker & tc) {
-        Type * valueType = value->typeCheck(tc);
-        Type * castType = type->typeCheck(tc);
-        if (tc.isPointer(castType)) {
-            if (tc.isPointer(valueType) || valueType == tc.getTypeInt())
-                type_ = castType;
-        } else if (castType == tc.getTypeInt()) {
-            if (tc.isPointer(valueType) || tc.isPOD(valueType))
-                type_ = castType;
-        } else if (tc.isPOD(castType) && tc.isPOD(valueType))
-            type_ = castType;
-        return AST::typeCheck(tc);
+     */
+    void TypeChecker::visit(ASTCast * ast) { 
+        Type * valueType = visitChild(ast->value);
+        Type * castType = visitChild(ast->type);
+        Type * t = nullptr;
+        if (isPointer(castType)) {
+            if (isPointer(valueType) || valueType == getTypeInt())
+                t = castType;
+        } else if (castType == getTypeInt()) {
+            if (isPointer(valueType) || isPOD(valueType))
+                t = castType;
+        } else if (isPOD(castType) && isPOD(valueType))
+            t = castType;
+        return ast->setType(t);
     }
 
-
-#endif
+} // namespace tinyc
