@@ -6,6 +6,10 @@
 #include "parser.h"
 #include "types.h"
 
+#if (defined OPTIMIZER_tvlm)
+#include "tvlm/tvlm.h"
+#endif
+
 namespace tinyc {
 
     /** The TinyC frontend. 
@@ -32,8 +36,14 @@ namespace tinyc {
         /** When using the dummy optimizer, the backend should work directly from the ASTs themselves and therefore the compileToIl method simply returns the given AST. 
          */
         using IL = std::string;
-        AST compileToIl(AST && ast) {
+        IL compileToIl(AST && ast) {
             return ast;
+        }
+#elif (defined OPTIMIZER_tvlm) 
+        /** The Tiny Virtual Low-level Machine Optimizer translator. 
+         */ 
+        tvlm::Program compileToIl(AST && ast) {
+            throw "not_implemented";
         }
 #else
     #error "Selected optimizer not supported by tinyC frontend"
