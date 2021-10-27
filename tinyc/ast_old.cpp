@@ -7,16 +7,9 @@
 
 namespace tiny {
 
-        Instruction * ASTInteger::compileToIR(IRBuilder & b, bool lvalue) {
-            return b.add(new Instruction::LoadImm{value, this});
-        }
 
         Instruction * ASTDouble::compileToIR(IRBuilder & b, bool lvalue) {
             return b.add(new Instruction::LoadImm{value, this});
-        }
-
-        Instruction * ASTChar::compileToIR(IRBuilder & b, bool lvalue) {
-            return b.add(new Instruction::LoadImm{static_cast<int64_t>(value), this});
         }
 
         Instruction * ASTString::compileToIR(IRBuilder & b, bool lvalue) {
