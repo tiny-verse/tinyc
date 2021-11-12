@@ -5,11 +5,29 @@
 #include "tvlm/il_builder.h"
 
 #include "ast.h"
+#include "types.h"
+
+#include "typechecker.h"
+
 
 namespace tinyc {
 
     class TvlmFrontend : public ASTVisitor {
     public:
+//        TvlmFrontend(const Frontend & frontend): frontend_{frontend}{}
+
+        static tvlm::Program translate(AST * ast){
+            TvlmFrontend b;
+            b.visit(ast);
+            std::stringstream ss;
+            auto printer = tiny::ASTPrettyPrinter(ss);
+
+            b.b_.print(printer);
+
+            std::cerr << "tinyc:\n" << ss.str() << std::endl;
+
+            return b.b_.finish();
+        }
 
         void visit(AST * ast) override;
         void visit(ASTInteger * ast) override;
@@ -47,6 +65,16 @@ namespace tinyc {
         void visit(ASTCall * ast) override;
         void visit(ASTCast * ast) override;
 
+    protected:
+        tvlm::Instruction * visitChild(AST * ast) {
+            ASTVisitor::visitChild(ast);
+            return lastIns_;
+        }
+
+        template<typename T>
+        tvlm::Instruction * visitChild(std::unique_ptr<T> const & ptr) {
+            return visitChild(ptr.get());
+        }
     private:
 
         tvlm::Instruction * append(tvlm::Instruction * ins) {
@@ -55,10 +83,12 @@ namespace tinyc {
             return ins;
         }
 
+//        const Frontend & frontend_;
         tvlm::ILBuilder b_;
         tvlm::Instruction * lastIns_;
+        bool lvalue_ = false;
 
-    }; 
+    };
 
 
 } // namespace tinyc

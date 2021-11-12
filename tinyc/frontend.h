@@ -8,45 +8,66 @@
 
 #if (defined OPTIMIZER_tvlm)
 #include "tvlm/tvlm.h"
+#include "tvlm_frontend.h"
+#include "tvlm/il_builder.h"
+#include "typechecker.h"
+
 #endif
 
 namespace tinyc {
 
-    /** The TinyC frontend. 
-     
+    /** The TinyC frontend.
+
      */
     class Frontend {
     public:
 
-        using AST = std::string;
+//        using AST = std::string;
+        using AST = std::unique_ptr<ASTBase>;
 
-        /** Parses the given string containing tinyC source and returns its AST. 
+        /** Parses the given string containing tinyC source and returns its AST.
          */
         AST parse(std::string const & source) {
-            return std::string{""};
+            return Parser::Parse(source,"", *this);
+//            return std::string{""};
         }
 
-        /** Opens file specified by the filename and parses the tinyC source within. 
+        /** Opens file specified by the filename and parses the tinyC source within.
          */
         AST parseFile(std::string const & filename) {
-            return std::string{""};
+            return Parser::ParseFile(filename, *this);
+//            return std::string{""};
         }
 
 #if (defined OPTIMIZER_dummy)
-        /** When using the dummy optimizer, the backend should work directly from the ASTs themselves and therefore the compileToIl method simply returns the given AST. 
+        /** When using the dummy optimizer, the backend should work directly from the ASTs themselves and therefore the compileToIl method simply returns the given AST.
          */
         using IL = std::string;
         IL compileToIl(AST && ast) {
             return ast;
         }
-#elif (defined OPTIMIZER_tvlm) 
-        /** The Tiny Virtual Low-level Machine Optimizer translator. 
-         */ 
-        tvlm::Program compileToIl(AST && ast) {
-            throw "not_implemented";
+#elif (defined OPTIMIZER_tvlm)
+        /** The Tiny Virtual Low-level Machine Optimizer translator.
+         */
+        using IL = tvlm::Program;
+        IL compileToIl(AST && ast) {
+            tinyc::AST * rootNode = dynamic_cast<tinyc::AST*>(ast.get());
+            // typecheck the ast and store type declarations
+            tinyc::TypeChecker tc{*this};
+            tc.visit(rootNode);
+            // compile the program
+            // rootNode->compileToIR(b, false);
+            auto tmp = TvlmFrontend::translate(rootNode);
+            std::stringstream ss;
+            auto printer = tiny::ASTPrettyPrinter(ss);
+
+            tvlm::ILBuilder b;
+
+            return tmp;
+            //throw "not_implemented";
         }
 #else
-    #error "Selected optimizer not supported by tinyC frontend"
+#error "Selected optimizer not supported by tinyC frontend"
 #endif
 
         Frontend() {
