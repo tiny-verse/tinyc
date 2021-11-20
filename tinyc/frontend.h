@@ -57,7 +57,7 @@ namespace tinyc {
             tc.visit(rootNode);
             // compile the program
             // rootNode->compileToIR(b, false);
-            auto tmp = TvlmFrontend::translate(rootNode);
+            auto tmp = TvlmFrontend::translate(rootNode, *this);
             std::stringstream ss;
             auto printer = tiny::ASTPrettyPrinter(ss);
 

@@ -14,10 +14,10 @@ namespace tinyc {
 
     class TvlmFrontend : public ASTVisitor {
     public:
-//        TvlmFrontend(const Frontend & frontend): frontend_{frontend}{}
+        TvlmFrontend(Frontend & frontend): frontend_{frontend}{}
 
-        static tvlm::Program translate(AST * ast){
-            TvlmFrontend b;
+        static tvlm::Program translate(AST * ast, Frontend & frontend){
+            TvlmFrontend b(frontend);
             b.visit(ast);
             std::stringstream ss;
             auto printer = tiny::ASTPrettyPrinter(ss);
@@ -83,7 +83,7 @@ namespace tinyc {
             return ins;
         }
 
-//        const Frontend & frontend_;
+        Frontend & frontend_;
         tvlm::ILBuilder b_;
         tvlm::Instruction * lastIns_;
         bool lvalue_ = false;

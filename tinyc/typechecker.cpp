@@ -86,7 +86,7 @@ namespace tinyc {
     }
 
     void TypeChecker::visit(AST * ast) { 
-
+        visitChild(ast);
     }
 
     void TypeChecker::visit(ASTInteger * ast) { 
