@@ -19,7 +19,7 @@ namespace tinyc {
     }
 
     void TvlmFrontend::visit(ASTString * ast) { 
-        lastIns_ = b_.getStringLiteral(ast->value);
+        lastIns_ = b_.getStringLiteral(ast->value, ast);
     }
 
     void TvlmFrontend::visit(ASTIdentifier * ast) { }
