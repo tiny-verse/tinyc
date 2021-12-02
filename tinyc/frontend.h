@@ -61,8 +61,6 @@ namespace tinyc {
             std::stringstream ss;
             auto printer = tiny::ASTPrettyPrinter(ss);
 
-            tvlm::ILBuilder b;
-
             return tmp;
             //throw "not_implemented";
         }
