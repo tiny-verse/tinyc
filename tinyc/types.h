@@ -90,9 +90,11 @@ namespace tinyc {
                 return 4;
             }else if (name_ == Symbol::KwDouble){
                 return 8;
+            } else if (name_ == Symbol::KwChar){
+                return 1;
             }
 
-            std::cerr << "unknown type" << name_.name() << ": counting with size 4" <<std::endl;
+            std::cerr << "unknown type " << name_.name() << ": counting with size 4" <<std::endl;
             return 4;
         }
 
@@ -191,6 +193,9 @@ namespace tinyc {
                 size += i.second->size();
             }
             return size ? size : 4; //every struct has to have a memory footprint
+        }
+       const std::vector<std::pair<Symbol, Type *>> & fields()const{
+            return fields_;
         }
     private:
 

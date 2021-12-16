@@ -571,7 +571,7 @@ namespace tinyc {
             return std::unique_ptr<AST>{new ASTDouble{pop()}};
         } else if (top() == Token::Kind::StringSingleQuoted) {
             return std::unique_ptr<AST>{new ASTChar{pop()}};
-        } else if (top() == Token::Kind::StringSingleQuoted) {
+        } else if (top() == Token::Kind::StringDoubleQuoted) {
             return std::unique_ptr<AST>{new ASTString{pop()}};
         } else if (top() == Symbol::KwCast) {
             Token op = pop();
@@ -582,7 +582,20 @@ namespace tinyc {
             std::unique_ptr<AST> expr(EXPR());
             pop(Symbol::ParClose);
             return std::unique_ptr<AST>{new ASTCast{op, std::move(expr), std::move(type)}};
-        } else if (top() == Token::Kind::Identifier) {
+        }
+        else if (top() == Symbol::KwScan) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTRead{op}};
+        } else if (top() == Symbol::KwPrint) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            std::unique_ptr<AST> expr(EXPR());
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTWrite{op, std::move(expr)}};
+        }
+        else if (top() == Token::Kind::Identifier) {
             return IDENT();
         } else {
             throw ParserError(STR("Expected literal, (expr) or cast, but " << top() << " found"), top().location(), eof());

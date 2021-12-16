@@ -475,4 +475,18 @@ namespace tinyc {
         return ast->setType(t);
     }
 
+    void TypeChecker::visit(ASTRead * ast) {
+        return ast->setType(frontend_.getTypeChar());
+    }
+
+
+    void TypeChecker::visit(ASTWrite * ast) {
+        Type * valueType = visitChild(ast->value);
+        Type * charType = frontend_.getTypeChar();
+        if (charType == valueType)
+            return ast->setType(frontend_.getTypeVoid());
+        else
+            return ast->setType(nullptr); // error
+    }
+
 } // namespace tinyc

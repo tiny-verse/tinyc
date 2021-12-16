@@ -135,7 +135,7 @@ namespace tinyc {
         ASTString(Token const & t):
             AST{t} {
             std::string const & s{t.valueString()};
-            if (t == Token::Kind::StringDoubleQuoted)
+            if (t == Token::Kind::StringSingleQuoted)
                 throw ParserError(STR("Expected string (double quote), but character '" << s << "' (single quote) found"), t.location(), false);
             value = s;
         }
@@ -919,6 +919,53 @@ namespace tinyc {
 
     };
 
+    class ASTWrite : public AST {
+    public:
+        std::unique_ptr<AST> value;
+
+        ASTWrite(Token const & t, std::unique_ptr<AST> value):
+            AST{t},
+            value{std::move(value)}{
+        }
+
+        /** Writes can only appear on right hand side of assignments.
+         */
+        bool hasAddress() const override {
+            return false;
+        }
+
+    protected:
+
+        void print(ASTPrettyPrinter & p) const override {
+            p << p.keyword << "print(" << *value << p.symbol << ")";
+        }
+
+        void accept(ASTVisitor * v) override;
+
+    };
+
+    class ASTRead : public AST {
+    public:
+        ASTRead(Token const & t):
+            AST{t}{
+        }
+
+        /** Reads can only appear on right hand side of assignments.
+         */
+        bool hasAddress() const override {
+            return false;
+        }
+
+    protected:
+
+        void print(ASTPrettyPrinter & p) const override {
+            p << p.keyword << "write()";
+        }
+
+        void accept(ASTVisitor * v) override;
+
+    };
+
     class ASTVisitor {
     public:
 
@@ -957,6 +1004,8 @@ namespace tinyc {
         virtual void visit(ASTMemberPtr * ast) = 0;
         virtual void visit(ASTCall * ast) = 0;
         virtual void visit(ASTCast * ast) = 0;
+        virtual void visit(ASTWrite * ast) = 0;
+        virtual void visit(ASTRead * ast) = 0;
 
     protected:
 
@@ -1001,5 +1050,7 @@ namespace tinyc {
     inline void ASTMemberPtr::accept(ASTVisitor * v) { v->visit(this); }
     inline void ASTCall::accept(ASTVisitor * v) { v->visit(this); }
     inline void ASTCast::accept(ASTVisitor * v) { v->visit(this); }
+    inline void ASTRead::accept(ASTVisitor * v) { v->visit(this); }
+    inline void ASTWrite::accept(ASTVisitor * v) { v->visit(this); }
 
 } // namespace tinyc

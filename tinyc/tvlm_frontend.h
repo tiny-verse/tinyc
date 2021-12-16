@@ -100,6 +100,10 @@ namespace tinyc {
 
         void visit(ASTCast *ast) override;
 
+        void visit(ASTRead *ast) override;
+
+        void visit(ASTWrite *ast) override;
+
     protected:
         tvlm::Instruction *visitChild(AST *ast, bool lvalue = false) {
             lvalue_ = lvalue;
@@ -126,6 +130,66 @@ namespace tinyc {
         bool lvalue_ = false;
 
     };
+
+    static size_t staticalyResolve(AST * ast) {
+        auto integer = dynamic_cast<ASTInteger *>(ast);
+        auto binaryOperator = dynamic_cast<ASTBinaryOp *>(ast);
+        auto unaryOperator = dynamic_cast<ASTUnaryOp *>(ast);
+        if (integer) {
+            return integer->value;
+        } else if (binaryOperator) {
+            size_t l = staticalyResolve(binaryOperator->left.get());
+            size_t r = staticalyResolve(binaryOperator->right.get());
+            if (binaryOperator->op == Symbol::Add) {
+                return l + r;
+            } else if (binaryOperator->op == Symbol::Sub) {
+                return l - r;
+            } else if (binaryOperator->op == Symbol::Mul) {
+                return l * r;
+            } else if (binaryOperator->op == Symbol::Div) {
+                return l / r;
+            } else if (binaryOperator->op == Symbol::ShiftLeft) {
+                return l << r;
+            } else if (binaryOperator->op == Symbol::ShiftRight) {
+                return l >> r;
+            } else if (binaryOperator->op == Symbol::Mod) {
+                return l % r;
+            } else if (binaryOperator->op == Symbol::And) {
+                return l && r;
+            } else if (binaryOperator->op == Symbol::Or) {
+                return l || r;
+            } else if (binaryOperator->op == Symbol::BitAnd) {
+                return l & r;
+            } else if (binaryOperator->op == Symbol::BitOr) {
+                return l | r;
+            } else if (binaryOperator->op == Symbol::Xor) {
+                return l ^ r;
+            } else if (binaryOperator->op == Symbol::Lt) {
+                return l < r;
+            } else if (binaryOperator->op == Symbol::Lte) {
+                return l <= r;
+            } else if (binaryOperator->op == Symbol::Gt) {
+                return l > r;
+            } else if (binaryOperator->op == Symbol::Gte) {
+                return l >= r;
+            } else if (binaryOperator->op == Symbol::Eq) {
+                return l == r;
+            } else if (binaryOperator->op == Symbol::NEq) {
+                return l != r;
+            }
+        } else if (unaryOperator) {
+            size_t operand = staticalyResolve(unaryOperator->arg.get());
+
+            if (binaryOperator->op == Symbol::Sub) {
+                return -operand;
+            } else if (binaryOperator->op == Symbol::Not) {
+                return !operand;
+            } else if (binaryOperator->op == Symbol::Neg) {
+                return ~operand;
+            }
+        }
+        throw "Is not statically known size";
+    }
 
 
 } // namespace tinyc

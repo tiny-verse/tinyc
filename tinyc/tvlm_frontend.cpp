@@ -42,22 +42,18 @@ namespace tinyc {
     }
 
     void TvlmFrontend::visit(ASTType *ast) {
-        //TODO nothing?
         std::cerr << "visited 'ASTType'" << std::endl;
     }
 
     void TvlmFrontend::visit(ASTPointerType *ast) {
-        //TODO
         std::cerr << "visited 'ASTPointerType'" << std::endl;
     }
 
     void TvlmFrontend::visit(ASTArrayType *ast) {
-        //TODO
         std::cerr << "visited 'ASTArrayType'" << std::endl;
     }
 
     void TvlmFrontend::visit(ASTNamedType *ast) {
-        //TODO
         std::cerr << "visited 'ASTNamedType'" << std::endl;
     }
 
@@ -74,28 +70,79 @@ namespace tinyc {
         lastIns_ = nullptr;
     }
 
+
+    tvlm::Instruction * resolveAssignment(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *addr,
+                                          tvlm::Instruction *val, AST const *ast) {
+        if (dynamic_cast<tinyc::Type::Alias *>(type)) {
+            return resolveAssignment(b, dynamic_cast<tinyc::Type::Alias *>(type)->base(), addr, val, ast);
+        } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
+            b.add(new tvlm::Store{val, addr,ast});
+            return val;
+        } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
+            b.add(new tvlm::Store{val, addr,ast});
+            return val;
+        } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
+            Type::Struct * strct = dynamic_cast<tinyc::Type::Struct * >(type);
+            //TODO dummy linear memcpy ? or represent with store and resolve by compiling to target
+            tvlm::Instruction * off = b.add(new tvlm::LoadImm((int64_t) 1, ast));
+            for (auto & f : strct->fields()) {
+                tvlm::ResultType fieldType = f.second->size() == 8 ? tvlm::ResultType::Double : tvlm::ResultType::Integer;
+                tvlm::ElemAddr * valElem =  new tvlm::ElemAddr(val, ast);
+                valElem->addIndex(off, strct->getFieldOffset(f.first));
+                tvlm::Instruction * valAddr = b.add(valElem);
+                tvlm::Instruction * tmp = b.add(new tvlm::Load( valAddr,fieldType, ast));
+
+                tvlm::ElemAddr * resElem =  new tvlm::ElemAddr( addr, ast);
+                resElem->addIndex(off, strct->getFieldOffset(f.first));
+                tvlm::Instruction * resAddr = b.add(resElem);
+
+                b.add(new tvlm::Store(tmp, resAddr, ast ));
+            }
+
+            return val;
+
+        } else if (dynamic_cast<Type::Fun * >(type)) {
+            b.add(new tvlm::Store{val, addr, ast});
+            return val;
+        }
+        throw "not implemented type";
+        return nullptr;
+    }
+
     void TvlmFrontend::visit(ASTVarDecl *ast) {
 
         if (b_.globalEnv()) {
             size_t varSize = ast->type->type()->size();
-            tvlm::Instruction *addr = append(new tvlm::AllocG{varSize, ast});
+            auto arrayType = dynamic_cast<ASTArrayType*>(ast->type.get());
+            tvlm::Instruction *addr;
+            if(arrayType){
+                addr = append(new tvlm::AllocG{varSize, visitChild(arrayType->base), ast});
+            }else {
+                addr = append(new tvlm::AllocG{varSize,nullptr, ast});
+            }
             tvlm::Instruction *val = nullptr;
             if (ast->value != nullptr) {
-                val = visitChild(ast->value, false);
-//                val = lastIns_;
-                append(new tvlm::Store{ val, addr, ast});
+                val = visitChild(ast->value);
+                resolveAssignment(b_, ast->value->type(), addr, val, ast);
             }
             b_.addGlobalVariable(ast->name->name, addr);
             lastIns_ = val;
 
         } else {
             size_t varSize = ast->type->type()->size();
-            tvlm::Instruction *addr = append(new tvlm::AllocL{varSize, ast});
+            auto arrayType = dynamic_cast<ASTArrayType*>(ast->type.get());
+                tvlm::Instruction *addr;
+            if(arrayType){
+                varSize = arrayType->base->type()->size();
+                addr = append(new tvlm::AllocL{varSize * staticalyResolve(arrayType->size.get()), visitChild(arrayType->size), ast});
+            }else {
+                addr = append(new tvlm::AllocL{varSize,nullptr, ast});
+            }
             tvlm::Instruction *val = nullptr;
             if (ast->value != nullptr) {
 
-                val = visitChild(ast->value, false);
-                append(new tvlm::Store{ val, addr,ast});
+                val = visitChild(ast->value);
+                resolveAssignment(b_, ast->value->type(), addr, val, ast);
             }
             b_.addVariable(ast->name->name, addr);
 
@@ -130,17 +177,13 @@ namespace tinyc {
     void TvlmFrontend::visit(ASTStructDecl *ast) {
 
         if (ast->isDefinition) {
-//            size_t varSize = resolveStructSize(ast->fields);
-//            tvlm::Instruction *addr = append(new tvlm::AllocL{varSize, ast});
-//            b_.addVariable(ast->name, addr);
             //TODO add types to IL?
             // il register new type
         }
     }
 
     void TvlmFrontend::visit(ASTFunPtrDecl *ast) {
-
-        //TODO
+        //nothing needs to be done already registered by globals?
     }
 
     void TvlmFrontend::visit(ASTIf *ast) {
@@ -222,7 +265,7 @@ namespace tinyc {
                     b_.enterBasicBlock(bCase);
 
                     tvlm::Instruction *caseVal = append(new tvlm::LoadImm((int64_t) c.first, c.second.get()));
-                    tvlm::Instruction *jmpVal = append(new tvlm::BinOp{Symbol::NEq, condVal, caseVal, ast});
+                    tvlm::Instruction *jmpVal = append(new tvlm::BinOp{Symbol::NEq, tvlm::Instruction::Opcode::NEQ, condVal, caseVal, ast});
 
                     tvlm::BasicBlock *bSuccessCmpNext;
                     auto nextCaseIt = it++;
@@ -343,7 +386,7 @@ namespace tinyc {
     }
 
     void TvlmFrontend::visit(ASTReturn *ast) {
-        tvlm::Instruction *resultValue = visitChild(ast->value);
+        tvlm::Instruction *resultValue = visitChild(ast->value, false);
         append(new tvlm::Return{resultValue, ast});
         // we have closed the basic block, so a new one has to be created
         b_.enterBasicBlock(b_.createBasicBlock());
@@ -355,83 +398,115 @@ namespace tinyc {
         tvlm::Instruction *lhs = lastIns_;
         //ShortCircuiting
         if (ast->op == Symbol::And) {
-            //TODO
             tvlm::Instruction *what = nullptr;
             tvlm::BasicBlock *lhsTrue = b_.createBasicBlock();
             tvlm::BasicBlock *bbFalse = b_.createBasicBlock();
             tvlm::BasicBlock *bbTrue = b_.createBasicBlock();
             tvlm::BasicBlock *bbAfter = b_.createBasicBlock();
-            tvlm::Phi *phi = new tvlm::Phi(tvlm::ResultType::Integer, ast);
+            tvlm::Phi *phi = new tvlm::Phi(tvlm::ResultType::Integer, ast);//phi node
             tvlm::CondJump *tmp = new tvlm::CondJump{lhs, ast};
-            tmp->addTarget(bbFalse);
-            tmp->addTarget(lhsTrue);
+            tmp->addTarget(bbFalse); //if L false --> bbFalse
+            tmp->addTarget(lhsTrue); //if L true --> lhsTrue
             append(tmp);
             b_.enterBasicBlock(lhsTrue);
             tvlm::Instruction *rhs = visitChild(ast->right);
             tmp = new tvlm::CondJump{rhs, ast};
-            tmp->addTarget(bbFalse);
-            tmp->addTarget(bbTrue);
+            tmp->addTarget(bbFalse); //if R false --> bbFalse
+            tmp->addTarget(bbTrue);  //if R true --> bbTrue
             append(tmp);
-            b_.enterBasicBlock(bbFalse);
+
+            b_.enterBasicBlock(bbFalse); // results in 0
             what = b_.add(new tvlm::LoadImm{(int64_t) 0, ast});
             phi->addIncomming(what, bbFalse);
-//                b.add(new Instruction::Store(what, resAddr));
             append(new tvlm::Jump{bbAfter, nullptr});
-            b_.enterBasicBlock(bbTrue);
+
+            b_.enterBasicBlock(bbTrue);// results in 1
             what = append(new tvlm::LoadImm{(int64_t) 1, ast});
             phi->addIncomming(what, bbTrue);
-//                b.add(new Instruction::Store(what, resAddr));
             append(new tvlm::Jump{bbAfter, nullptr});
+
             b_.enterBasicBlock(bbAfter);
-//                return b.add(new Instruction::Load(resAddr,Instruction::ResultType::Integer, this));
             append(phi);
         } else if (ast->op == Symbol::Or) {
-            //TODO
+            // carry through memory -- unfriendly for optimization
+            // but friendly for register allocation TODO
+            tvlm::BasicBlock * bbTrue = b_.createBasicBlock();
+            tvlm::BasicBlock * lhsFalse = b_.createBasicBlock();
+            tvlm::BasicBlock * bbFalse = b_.createBasicBlock();
+            tvlm::BasicBlock * bbAfter = b_.createBasicBlock();
+            tvlm::Instruction * resAddr = b_.add(new tvlm::AllocL(4, nullptr, ast));
+            tvlm::Instruction * what = nullptr;
+            tvlm::CondJump *tmp = new tvlm::CondJump{lhs, ast};
+            tmp->addTarget(lhsFalse); // if L false --> lhsFalse
+            tmp->addTarget(bbTrue);   // if L true -->  bbTrue
+            append(tmp);
+
+            b_.enterBasicBlock(lhsFalse);
+            tvlm::Instruction * rhs = visitChild(ast->right, false);
+            tmp = new tvlm::CondJump{rhs, ast};
+            tmp->addTarget(bbFalse); // if R false --> bbFalse
+            tmp->addTarget(bbTrue);  // if R true --> bbTrue
+
+            b_.enterBasicBlock(bbFalse);
+            what =  b_.add(new tvlm::LoadImm{(int64_t) 0, ast});
+            b_.add(new tvlm::Store(resAddr, what, ast));
+            b_.add(new tvlm::Jump{bbAfter, nullptr});
+
+            b_.enterBasicBlock(bbTrue);
+            what = b_.add(new tvlm::LoadImm{(int64_t) 1, ast});
+            b_.add(new tvlm::Store(resAddr, what, ast));
+            b_.add(new tvlm::Jump{bbAfter, nullptr});
+
+            b_.enterBasicBlock(bbAfter);
+            append(new tvlm::Load(resAddr,tvlm::ResultType::Integer, ast));
         } else {
+            tvlm::Instruction::Opcode opcode;
+                if (ast->op == tvlm::Symbol::Add){
+                    opcode = tvlm::Instruction::Opcode::ADD;
+                }else if (ast->op == tvlm::Symbol::Sub){
+                    opcode = tvlm::Instruction::Opcode::SUB;
+                }else if (ast->op == tvlm::Symbol::Mul){
+                    opcode = tvlm::Instruction::Opcode::MUL;
+                }else if (ast->op == tvlm::Symbol::Mod){
+                    opcode = tvlm::Instruction::Opcode::MOD;
+                }else if (ast->op == tvlm::Symbol::Div){
+                    opcode = tvlm::Instruction::Opcode::DIV;
+                }else if (ast->op == tvlm::Symbol::ShiftLeft){
+                    opcode = tvlm::Instruction::Opcode::LSH;
+                }else if (ast->op == tvlm::Symbol::ShiftRight){
+                    opcode = tvlm::Instruction::Opcode::RSH;
+                }else if (ast->op == tvlm::Symbol::BitAnd){
+                    opcode = tvlm::Instruction::Opcode::AND;
+                }else if (ast->op == tvlm::Symbol::BitOr){
+                    opcode = tvlm::Instruction::Opcode::OR;
+                }else if (ast->op == tvlm::Symbol::Xor) {
+                    opcode = tvlm::Instruction::Opcode::XOR;
+                }else if (ast->op == tvlm::Symbol::Eq){
+                    opcode = tvlm::Instruction::Opcode::EQ;
+                }else if (ast->op == tvlm::Symbol::NEq){
+                    opcode = tvlm::Instruction::Opcode::NEQ;
+                }else if (ast->op == tvlm::Symbol::Lt){
+                    opcode = tvlm::Instruction::Opcode::LT;
+                }else if (ast->op == tvlm::Symbol::Lte){
+                    opcode = tvlm::Instruction::Opcode::LTE;
+                }else if (ast->op == tvlm::Symbol::Gt) {
+                    opcode = tvlm::Instruction::Opcode::GT;
+                }else if (ast->op == tvlm::Symbol::Gte) {
+                    opcode = tvlm::Instruction::Opcode::GTE;
+                }else{
+                    throw ParserError(STR("Unsupported binary operator " << ast->op), ast->location());
+                }
             visitChild(ast->right);
             tvlm::Instruction *rhs = lastIns_;
-            //TODO operator check? so we can throw unsupported bin operator?
-            append(new tvlm::BinOp(ast->op, lhs, rhs, ast));
+            append(new tvlm::BinOp(ast->op, opcode, lhs, rhs, ast));
 
         }
-    }
-
-    tvlm::Instruction *
-    resolveAssignment(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *addr, tvlm::Instruction *val, AST const *ast) {
-        if (dynamic_cast<tinyc::Type::Alias *>(type)) {
-            return resolveAssignment(b, dynamic_cast<tinyc::Type::Alias *>(type)->base(), addr, val, ast);
-        } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
-            b.add(new tvlm::Store{val, addr,ast});
-            return val;
-        } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
-            b.add(new tvlm::Store{val, addr,ast});
-            return val;
-        } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
-            //TODO "copy constructor"
-
-            return val;
-
-        } else if (dynamic_cast<Type::Fun * >(type)) {
-            b.add(new tvlm::Store{val, addr, ast});
-            return val;
-        }
-        throw "not implemented type";
-        return nullptr;
     }
 
     void TvlmFrontend::visit(ASTAssignment *ast) {
         tvlm::Instruction *addr = visitChild(ast->lvalue, true);
         tvlm::Instruction *val = visitChild(ast->value);
 
-        ASTIdentifier *identifier = dynamic_cast<ASTIdentifier *>(ast->lvalue.get());
-        ASTMember * member = dynamic_cast<ASTMember *>(ast->lvalue.get());
-
-        if (!identifier && !member) {
-//            std::string exception  = STR("ASTAssignment: lvalue is not a identifier nor member at loc: " << ast->lvalue->location() << "\n");
-//            throw exception.c_str();
-            throw ParserError("ASTAssignment: lvalue is not a identifier at loc: ", ast->lvalue->location(), false);
-
-        }
         Type *identifierType =
                 ast->lvalue->type();
 
@@ -445,20 +520,23 @@ namespace tinyc {
 
     void TvlmFrontend::visit(ASTUnaryOp *ast) {
 
-        tvlm::Instruction *operand = visitChild(ast->arg);
+        tvlm::Instruction *operand = visitChild(ast->arg, true);
         if (ast->op == Symbol::Sub) {
-            append(new tvlm::BinOp{ast->op, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
-        } else if (ast->op == Symbol::Not || ast->op == Symbol::Neg) {
-            append(new tvlm::UnOp{ast->op, operand, ast});
+            append(new tvlm::BinOp{ast->op, tvlm::Instruction::Opcode::UNSUB, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
+        } else if (ast->op == Symbol::Not ) {
+            append(new tvlm::BinOp{Symbol::Eq, tvlm::Instruction::Opcode::EQ, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
+        }else if (ast->op == Symbol::Neg){
+            //operator ~
+            append(new tvlm::UnOp{ast->op, tvlm::Instruction::Opcode::NOT, operand, ast});
         } else if (ast->op == Symbol::Inc) {
             tvlm::Instruction *res = append(
-                    new tvlm::BinOp{Symbol::Add, operand, append(new tvlm::LoadImm{(int64_t) 1, ast}), ast});
-            append(new tvlm::Store{res, visitChild(ast->arg)/*->compileToIR(b, true)*/, ast});
+                    new tvlm::UnOp{ast->op, tvlm::Instruction::Opcode::INC, operand, ast});
+            append(new tvlm::Store{res, visitChild(ast->arg, true), ast});
             lastIns_ = res;
         } else if (ast->op == Symbol::Dec) {
             tvlm::Instruction *res = append(
-                    new tvlm::BinOp{Symbol::Sub, operand, append(new tvlm::LoadImm{(int64_t) 1, ast}), ast});
-            append(new tvlm::Store{res, visitChild(ast->arg)/*->compileToIR(b, true)*/, ast});
+                    new tvlm::UnOp{ast->op, tvlm::Instruction::Opcode::DEC, operand,ast});
+            append(new tvlm::Store{res, visitChild(ast->arg, true), ast});
             lastIns_ = res;
         } else {
             throw ParserError{STR("Unsupported unary operator: " << ast->op), ast->location(), false};
@@ -471,14 +549,14 @@ namespace tinyc {
         if (ast->op == Symbol::Inc) {
             tvlm::Instruction *cpy = append(new tvlm::Copy{operand, ast});
             tvlm::Instruction *x = append(
-                    new tvlm::BinOp{Symbol::Add, operand, append(new tvlm::LoadImm{(int64_t) 1, ast}), ast});
-            append(new tvlm::Store(x, visitChild(ast->arg) ,  ast));
+                    new tvlm::UnOp{ast->op, tvlm::Instruction::Opcode::INC, operand, ast});
+            append(new tvlm::Store(x, visitChild(ast->arg, true) ,  ast));
             lastIns_ = cpy;
         } else if (ast->op == Symbol::Dec) {
             tvlm::Instruction *cpy = append(new tvlm::Copy{operand, ast});
             tvlm::Instruction *x = append(
-                    new tvlm::BinOp{Symbol::Sub, operand, append(new tvlm::LoadImm{(int64_t) 1, ast}), ast});
-            append(new tvlm::Store(x, visitChild(ast->arg),  ast));
+                    new tvlm::UnOp{ast->op, tvlm::Instruction::Opcode::DEC, operand, ast});
+            append(new tvlm::Store(x, visitChild(ast->arg, true),  ast));
             lastIns_ = cpy;
         } else {
             throw ParserError{STR("Unsupported unary operator: " << ast->op), ast->location(), false};
@@ -497,10 +575,6 @@ namespace tinyc {
             visitChild(ast->target);
 
         } else {
-            // TODO how about other types:)
-
-
-
             tvlm::Instruction *addr = visitChild(ast->target);
             if (ast->type() == frontend_.getTypeDouble()) {
                 append(new tvlm::Load{addr, tvlm::ResultType::Double, ast});
@@ -514,64 +588,70 @@ namespace tinyc {
     }
 
     void TvlmFrontend::visit(ASTIndex *ast) {
-        //TODO
-        ASTNamedType *base = dynamic_cast<ASTNamedType *>(ast->base.get());
-//        tvlm::ElemAddr * elem = new tvlm::ElemAddr(base, ast);
-//        append(elem);
-        throw "not implemented ASTIndex";
-    }
-
-    void TvlmFrontend::visit(ASTMember *ast) {
-
-        Type *baseType = ast->base->type();
-        Type::Struct *type = dynamic_cast<Type::Struct *>(baseType);
-
-         ASTIdentifier * identifier = dynamic_cast<ASTIdentifier *>(ast->base.get());
-         tvlm::Instruction * res;
-        if (identifier) {
-            tvlm::Instruction *member = b_.getVariableAddress(identifier->name);
-//            new tvlm::ElemAddr(base, type->getFieldOffset(ast->member));
-            tvlm::Instruction * l = append(new tvlm::LoadImm((int64_t)type->getFieldOffset(ast->member),ast));
-            res = append(new tvlm::BinOp(Symbol::Add,member,l , ast));
-            if(!lvalue_){
-                tvlm::ResultType resType = ( type->getFieldType(ast->member) == frontend_.getTypeDouble() ) ?
-                        tvlm::ResultType::Double : tvlm::ResultType::Integer;
-                append(new tvlm::Load(res, resType, ast));
+        bool lvalue = lvalue_;
+        Type::Pointer * pointer = dynamic_cast<Type::Pointer* >(ast->base->type());
+        if(!pointer){
+            throw "ASTIndex called on non-pointer type";
+        }
+        tvlm::ElemAddr * addr = new tvlm::ElemAddr(visitChild(ast->base, true), ast);
+        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
+        append(addr);
+        if(lvalue){
+            lastIns_ = addr;
+        }else{
+            if(ast->base->type() == frontend_.getTypeDouble()){
+                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Double, ast));
+            }else{
+                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Integer, ast));
             }
         }
-        //TODO
-//        throw "not implemented ASTMember";
     }
 
-//    resolvePointer(Type * pointer, )
+
+    void TvlmFrontend::visit(ASTMember *ast) {
+        bool lvalue = lvalue_;
+        Type::Struct *type = dynamic_cast<Type::Struct *>(ast->base->type());
+
+         tvlm::Instruction * res;
+        //resolve access to member
+        tvlm::ElemAddr * addr = new tvlm::ElemAddr(visitChild(ast->base, true), ast);
+        tvlm::Instruction * off = append(new tvlm::LoadImm((int64_t)1, ast));
+        addr->addIndex( off, type->getFieldOffset(ast->member));
+        res = append( addr );
+        if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
+            tvlm::ResultType resType = ( type->getFieldType(ast->member) == frontend_.getTypeDouble() ) ?
+                    tvlm::ResultType::Double : tvlm::ResultType::Integer;
+            append(new tvlm::Load(res, resType, ast));
+        }
+
+    }
+
 
 
     void TvlmFrontend::visit(ASTMemberPtr *ast) {
-
+        bool lvalue = lvalue_;
         Type *baseType = ast->base->type();
 
         Type::Pointer *ptype = dynamic_cast<Type::Pointer *>(baseType);
         Type::Struct *type = dynamic_cast<Type::Struct *>(ptype->base());
 
-        ASTIdentifier * identifier = dynamic_cast<ASTIdentifier *>(ast->base.get());
         tvlm::Instruction * res;
-        if (identifier) {
-            tvlm::Instruction *member = b_.getVariableAddress(identifier->name);
-//            new tvlm::ElemAddr(base, type->getFieldOffset(ast->member));
-            tvlm::Instruction * l = append(new tvlm::LoadImm((int64_t)type->getFieldOffset(ast->member),ast));
-            res = append(new tvlm::BinOp(Symbol::Add,member,l , ast));
-            if(!lvalue_){
-                tvlm::ResultType resType = ( type->getFieldType(ast->member) == frontend_.getTypeDouble() ) ?
-                                           tvlm::ResultType::Double : tvlm::ResultType::Integer;
-                append(new tvlm::Load(res, resType, ast));
-            }
-        }
+        //resolve address from Pointer
+        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, true),tvlm::ResultType::Integer,ast));
 
-//        throw "not implemented ASTMemberPtr";
+        //resolve access to member
+        tvlm::ElemAddr * elem = new tvlm::ElemAddr(loadAddr, ast);
+        tvlm::Instruction * off = append(new tvlm::LoadImm((int64_t)1, ast));
+        elem->addIndex(off, type->getFieldOffset(ast->member));
+        res = append(elem);
+        if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
+            tvlm::ResultType resType = ( type->getFieldType(ast->member) == frontend_.getTypeDouble() ) ?
+                                       tvlm::ResultType::Double : tvlm::ResultType::Integer;
+            append(new tvlm::Load(res, resType, ast));
+        }
     }
 
     void TvlmFrontend::visit(ASTCall *ast) {
-
         std::vector<tvlm::Instruction *> argValues;
         for (auto &i: ast->args) {
             argValues.push_back(visitChild(i));
@@ -579,33 +659,40 @@ namespace tinyc {
         if (auto i = dynamic_cast<ASTIdentifier *>(ast->function.get())) {
             auto it = b_.functions().find(i->name);
             tvlm::Function *f = b_.findFnc(i->name);
-            if (!f) {
-                throw "idk: ASTCall -compile to IR";
+            if (f) {
+                append(new tvlm::CallStatic{f, std::move(argValues), ast});
+            }else{
+                tvlm::Instruction *f = visitChild(ast->function);
+                append(new tvlm::Call{f, std::move(argValues), ast});
             }
-
-            append(new tvlm::CallStatic{f, std::move(argValues), ast});
-
         } else {
 
-            tvlm::Instruction *f = visitChild(ast->function);
-            append(new tvlm::Call{f, std::move(argValues), ast});
+                throw "ASTCall - failed to compile to IL";
 
-//            throw "function pointers not implemented";
         }
     }
 
     void TvlmFrontend::visit(ASTCast *ast) {
         tvlm::Instruction *val = visitChild(ast->value);
+        ASTNamedType * newType = dynamic_cast<ASTNamedType * >(ast->type.get());
 
-        if (dynamic_cast<ASTNamedType * >(ast->type.get()) != nullptr) {
-            if (dynamic_cast<ASTNamedType * >(ast->type.get())->name == Symbol::KwDouble) {
-                append(new tvlm::Extend(val, ast));
-            } else if (dynamic_cast<ASTNamedType * >(ast->type.get())->name == Symbol::KwInt) {
-                append(new tvlm::Truncate(val, ast));
-            }
-        } else {
-            throw STR("casting " << val->name() << " to " << ast->type->toString());
+        if(ast->type->type() == ast->value->type()){ //casting T to T
+            append(new tvlm::Copy(val, ast)); //to preserve SSA
+        }else if (ast->type->type() == frontend_.getTypeDouble() && ast->value->type() != frontend_.getTypeDouble()) {
+            append(new tvlm::Extend(val, ast)); // needs extension to float type
+        } else if (ast->type->type() == frontend_.getTypeInt() && ast->value->type() == frontend_.getTypeDouble()) {
+            append(new tvlm::Truncate(val, ast)); // needs truncation from float type
         }
+        lastIns_ = val; //no cast necessary
+    }
+
+    void TvlmFrontend::visit(ASTRead *ast) {
+        append(new tvlm::GetChar(ast));
+    }
+
+    void TvlmFrontend::visit(ASTWrite *ast) {
+        tvlm::Instruction *val = visitChild(ast->value);
+        append(new tvlm::PutChar(val, ast));
     }
 
 } // namespace tinyc
