@@ -84,19 +84,19 @@ namespace tinyc {
             return false;
         }
 
-        Type * getTypeInt() {
+        Type * getTypeInt() const{
             return int_;
         }
 
-        Type * getTypeDouble() {
+        Type * getTypeDouble() const{
             return double_;
         }
 
-        Type * getTypeChar() {
+        Type * getTypeChar() const{
             return char_;
         }
 
-        Type * getTypeVoid() {
+        Type * getTypeVoid() const{
             return void_;
         }
 
