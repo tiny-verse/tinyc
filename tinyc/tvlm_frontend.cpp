@@ -102,7 +102,25 @@ namespace tinyc {
         }
         return loadAddr;
     }
+    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,Type::Struct * strct,
+                                              tvlm::Instruction * loadAddr, const Symbol & member,
+                                              bool lvalue,
+                                              const AST * ast, Frontend & frontend){
+        tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t)strct->getFieldOffset(member), ast));
+        tvlm::Instruction * addr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, loadAddr, offset, ast));
+
+        if(!lvalue){
+            tvlm::ResultType resType = ( strct->getFieldType(member) == frontend.getTypeDouble() ) ?
+                                       tvlm::ResultType::Double : tvlm::ResultType::Integer;
+
+            return b.add(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
+        }
+
+        return addr;
+    }
     tvlm::Instruction * resolveAssignment(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
+                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend);
+    tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
                                           tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend);
     tvlm::Instruction * copyStructFieldByField(tvlm::ILBuilder &b, Type::Struct * strct,
                                                tvlm::Instruction * srcAddrBase,
@@ -118,7 +136,7 @@ namespace tinyc {
                     srcAddr = new tvlm::ElemAddr(srcAddrBase, ast);
                     b.add(srcAddr);
                 }
-                tvlm::ElemAddr * dstAddr =  dynamic_cast<tvlm::ElemAddr*>(srcAddrBase);
+                tvlm::ElemAddr * dstAddr =  dynamic_cast<tvlm::ElemAddr*>(dstAddrBase);
                 if(!dstAddr){
                     dstAddr = new tvlm::ElemAddr(dstAddrBase, ast);
                     b.add(dstAddr);
@@ -134,7 +152,7 @@ namespace tinyc {
                     srcAddr = new tvlm::ElemAddr(srcAddrBase, ast);
                     b.add(srcAddr);
                 }
-                tvlm::ElemAddr * dstAddr =  dynamic_cast<tvlm::ElemAddr*>(srcAddrBase);
+                tvlm::ElemAddr * dstAddr =  dynamic_cast<tvlm::ElemAddr*>(dstAddrBase);
                 if(!dstAddr){
                     dstAddr = new tvlm::ElemAddr(dstAddrBase, ast);
                     b.add(dstAddr);
@@ -147,6 +165,41 @@ namespace tinyc {
                         resolveAccessToMember(b, fieldStruct, srcAddr,f.first, true, ast, frontend);
 
                 resolveAssignment(b, f.second, dstAddr, srcVal, ast, frontend);
+            }
+        }
+        return srcAddrBase;
+
+    }
+    tvlm::Instruction * copyStructFieldByFieldWITHOUTELEMADDR(tvlm::ILBuilder &b, Type::Struct * strct,
+                                               tvlm::Instruction * srcAddrBase,
+                                               tvlm::Instruction * dstAddrBase,
+                                               AST const *ast, Frontend & frontend
+                                   ){
+
+        for (auto & f : strct->fields()) {
+            Type::Struct * fieldStruct = dynamic_cast<Type::Struct *>(f.second);
+            if( fieldStruct ){
+
+                tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t )strct->getFieldOffset(f.first), ast));
+                tvlm::Instruction * srcAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,srcAddrBase, offset , ast));
+
+
+                tvlm::Instruction * dstAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,dstAddrBase, offset , ast));
+
+
+                copyStructFieldByFieldWITHOUTELEMADDR(b, fieldStruct, srcAddr, dstAddr, ast, frontend);
+
+            }else{
+
+                //dstAddr->addOffset(strct->getFieldOffset(f.first));
+                tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t )strct->getFieldOffset(f.first), ast));
+                tvlm::Instruction * dstAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,dstAddrBase, offset , ast));
+
+                tvlm::Instruction * srcVal =
+//                srcAddr->addIndex(off, strct->getFieldOffset(f.first)); //-- already Included
+                        resolveAccessToMemberWITHOUTELEMADDR(b, fieldStruct, srcAddrBase,f.first, true, ast, frontend);
+
+                resolveAssignmentWITHOUTELEMADDR(b, f.second, dstAddr, srcVal, ast, frontend);
             }
         }
         return srcAddrBase;
@@ -202,6 +255,27 @@ namespace tinyc {
 
 
             return srcVal;
+
+        } else if (dynamic_cast<Type::Fun * >(type)) {
+            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+            return srcVal;
+        }
+        throw "not implemented type";
+        return nullptr;
+    }
+tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
+                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend) {
+        if (dynamic_cast<tinyc::Type::Alias *>(type)) {
+            return resolveAssignmentWITHOUTELEMADDR(b, dynamic_cast<tinyc::Type::Alias *>(type)->base(), dstAddr, srcVal, ast, frontend);
+        } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
+            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+            return srcVal;
+        } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
+            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+            return srcVal;
+        } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
+            Type::Struct * strct = dynamic_cast<tinyc::Type::Struct * >(type);
+            return copyStructFieldByFieldWITHOUTELEMADDR(b, strct, srcVal, dstAddr, ast, frontend);
 
         } else if (dynamic_cast<Type::Fun * >(type)) {
             b.add(new tvlm::Store{srcVal, dstAddr, ast});
@@ -524,7 +598,9 @@ namespace tinyc {
             append(phi);
         } else if (ast->op == Symbol::Or) {
             // carry through memory -- unfriendly for optimization
-            // but friendly for register allocation TODO
+            // but friendly for register allocation
+
+/*
             tvlm::BasicBlock * bbTrue = b_.createBasicBlock();
             tvlm::BasicBlock * lhsFalse = b_.createBasicBlock();
             tvlm::BasicBlock * bbFalse = b_.createBasicBlock();
@@ -554,6 +630,40 @@ namespace tinyc {
 
             b_.enterBasicBlock(bbAfter);
             append(new tvlm::Load(resAddr,tvlm::ResultType::Integer, ast));
+
+            //---------------------------------------------------------------/
+/*/
+            tvlm::Instruction *what = nullptr;
+            tvlm::BasicBlock *lhsFalse = b_.createBasicBlock();
+            tvlm::BasicBlock *bbTrue = b_.createBasicBlock();
+            tvlm::BasicBlock *bbFalse = b_.createBasicBlock();
+            tvlm::BasicBlock *bbAfter = b_.createBasicBlock();
+            tvlm::Phi *phi = new tvlm::Phi(tvlm::ResultType::Integer, ast);//phi node
+            tvlm::CondJump *tmp = new tvlm::CondJump{lhs, ast};
+            tmp->addTarget(lhsFalse); //if L true --> lhsTrue
+            tmp->addTarget(bbTrue); //if L false --> bbTrue
+            append(tmp);
+            b_.enterBasicBlock(lhsFalse);
+            tvlm::Instruction *rhs = visitChild(ast->right);
+            tmp = new tvlm::CondJump{rhs, ast};
+            tmp->addTarget(bbFalse); //if R false --> bbFalse
+            tmp->addTarget(bbTrue);  //if R true --> bbTrue
+            append(tmp);
+
+            b_.enterBasicBlock(bbFalse); // results in 0
+            what = b_.add(new tvlm::LoadImm{(int64_t) 0, ast});
+            phi->addIncomming(what, bbFalse);
+            append(new tvlm::Jump{bbAfter, nullptr});
+
+            b_.enterBasicBlock(bbTrue);// results in 1
+            what = append(new tvlm::LoadImm{(int64_t) 1, ast});
+            phi->addIncomming(what, bbTrue);
+            append(new tvlm::Jump{bbAfter, nullptr});
+
+            b_.enterBasicBlock(bbAfter);
+            append(phi);
+
+            /**/
         } else {
             tvlm::BinOpType opcode;
             tvlm::Instruction::Opcode opc;
@@ -776,24 +886,6 @@ namespace tinyc {
 //        resolveAccessToMember(b_, type, addr, ast->member, lvalue, ast, frontend_);
 //
 //    }
-
-    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,Type::Struct * strct,
-                                                             tvlm::Instruction * loadAddr, const Symbol & member,
-                                                             bool lvalue,
-                                                             const AST * ast, Frontend & frontend){
-
-        tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t)strct->getFieldOffset(member), ast));
-        tvlm::Instruction * addr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, loadAddr, offset, ast));
-
-        if(!lvalue){
-            tvlm::ResultType resType = ( strct->getFieldType(member) == frontend.getTypeDouble() ) ?
-                                       tvlm::ResultType::Double : tvlm::ResultType::Integer;
-
-            return b.add(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
-        }
-
-        return addr;
-    }
 
     /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTMember *ast) {
