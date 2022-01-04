@@ -1,0 +1,10 @@
+                // AST                          ->  IL
+
+int main(){     // ASTFunDecl                   ->  Function
+    int a = 5;  // ASTVarDecl   // ASTType      ->  addr  = AllocL(4 : size)
+                //              // ASTInteger   ->  v     = LoadImm(5 : value)
+                //                              ->  Store(v : value, addr : address)
+    return a;   // ASTReturn   // ASTIdentifier ->  a     = Load(addr, Integer)
+                              //                ->  Return(a : retValue)
+}
+    //! 5

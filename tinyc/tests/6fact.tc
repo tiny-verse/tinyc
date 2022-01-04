@@ -1,0 +1,40 @@
+                                    // AST                                           -> IL
+int fact(int n) {                   // Function("fact", Integer)
+                                //                                                   -> n       = ArgAddr(0)
+
+    if(n == 0) {                    // ASTIf // ASTBinaryOp
+                                                // ASTIdentifier // ASTInteger       -> t1 = Load (n : addr)
+                                            //                                       -> t2 = LoadImm(0)
+                                            //                                       -> t3 = BinOp(==, t1, t2)
+                                            //                                       -> jump = CondJump(t3)
+                                            //                                       -> jump->addTerget(bbAfter)
+                                            //                                       -> jump->addTerget(bbTrue)
+                                            //                      BasicBlock * bbTrue:
+        return 1;                   // ASTReturn // ASTInteger                      -> t4 = LoadIm(1)
+                                                 //                                 -> return t4;
+    }
+                                            //                      BasicBlock * bbAfter:
+
+    //return n * fact(n - 1);
+    return                          // ASTReturn
+    n                               // ASTIdentifier                                -> t5 = Load(r0)
+    *                               // ASTBinOp
+     fact(                          // ASTCall
+            n                       // ASTIdentifier                                -> t6 = Load(r0)
+            -                       // ASTBinaryOp
+            1);                     // ASTInteger                                   -> t7 = LoadImm(1)
+                                    //                                              -> t8 = BinOp(-, t6, t7)
+                                    //                                              -> t9 = CallStatic ( fact,  [t8] )
+                                    //                                              -> t10= BinOp(*, t5, t9)
+                                    //                                              -> t11= Return (t10)
+
+}
+
+int main(){                         // Function("main", Integer)
+
+    return fact(3);                       // ASTReturn       // ASTCall
+                                                            // ASTInteger            ->  t12 = LoadImm(1)
+                                                            //                       ->  t13 = CallStatic( fact, t12)
+                                                            //                       ->  Return(t13 : retValue)
+    //! 6
+}

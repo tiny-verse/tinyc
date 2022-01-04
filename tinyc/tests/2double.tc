@@ -1,0 +1,13 @@
+                            // AST                           ->  IL
+
+double b = 1.2;             // ASTVarDecl   // ASTType       -> gaddr  = AllocG(8 : size)
+                                            // ASTDouble     -> v1     = LoacImm(1.2 : value)
+int main(){                 // ASTFunDecl                    ->  Function( "main" : name, Integer : type)
+    int a = cast<int>(b);   // ASTVarDecl   // ASTType       ->  addr  = AllocL(4 : size)
+                                            // ASTIdentifier ->  b     = Load(gaddr, Double)
+                                            // ASTCast       ->  v2    = Trunc(b : value)
+                                            //               ->  Store(v : value, addr : address)
+    return a;               // ASTReturn   // ASTIdentifier  ->  a     = Load(addr, Integer)
+                                           //                ->  Return(a : retValue)
+}
+    //! 1

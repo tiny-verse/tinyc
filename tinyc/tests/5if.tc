@@ -1,0 +1,29 @@
+                                    // AST                                           -> IL
+
+int main(){                         // Function("main", Integer)
+
+    int a = 0;                      // ASTVarDecl   // ASTType                       ->  addr  = AllocL(4 : size)
+                                    //              // ASTInteger                    ->  v1     = LoadImm(0 : value)
+                                    //                                               ->  Store(v1 : value, addr : address)
+
+    if(a){                          // ASTIf                        BasicBlock cond: -> a = Load(addr, Integer)
+                                        //                          BasicBlock true: ->
+
+        a = 15;                     // ASTAssignment // ASTIdentifier // ASTInteger  -> v2 = LoadImm(15)
+                                                                 //                  -> Store(v2, addr)
+
+    }else{                                                       //                  -> Jump(bbAfter)
+                                                                 // BasicBlock else: ->
+        a = 1555;                   // ASTAssignment // ASTIdentifier // ASTInteger  -> v3 = LoadImm(15)
+                                                                 //                  -> Store(v3, addr)
+
+    }                               //                                               -> Jump(bbAfter)
+                                    //                                               -> cd = CondJump(a)
+                                    //                                               -> cd.addTarget(else) //~so it is at index0
+                                    //                                               -> cd.addTarget(true)
+                                                              // BasicBlock bbAfter: ->
+
+    return a;                       // ASTReturn   // ASTIdentifier                  ->  a     = Load(addr, Integer)
+                                                   //                                ->  Return(a : retValue)
+    //! 1555
+}
