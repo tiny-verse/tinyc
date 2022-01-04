@@ -583,12 +583,12 @@ namespace tinyc {
             pop(Symbol::ParClose);
             return std::unique_ptr<AST>{new ASTCast{op, std::move(expr), std::move(type)}};
         }
-        else if (top() == Symbol::KwScan) {
+        else if (top() == symbol::KwScan) {
             Token op =  pop();
             pop(Symbol::ParOpen);
             pop(Symbol::ParClose);
             return std::unique_ptr<AST>{new ASTRead{op}};
-        } else if (top() == Symbol::KwPrint) {
+        } else if (top() == symbol::KwPrint) {
             Token op =  pop();
             pop(Symbol::ParOpen);
             std::unique_ptr<AST> expr(EXPR());
@@ -608,5 +608,10 @@ namespace tinyc {
         return std::unique_ptr<ASTIdentifier>{new ASTIdentifier{pop()}};
     }
 
+    bool symbol::isKeyword(const Symbol &s) {
+        return s == KwPrint
+               || s == KwScan
+                ;
+    }
 }
 
