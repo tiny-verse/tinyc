@@ -829,7 +829,7 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
         if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
             addr =  new tvlm::ElemAddr(addrInstr, ast);
-            append(addr);
+//            append(addr);
         }
         addr->addIndex(visitChild(ast->index), pointer->base()->size() );
         if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){

@@ -27,7 +27,7 @@ namespace tinyc {
 
             std::cerr << tiny::color::lightBlue << "IL:\n" << ss.str() << std::endl;
 
-            return b.b_.finish();
+            return std::move(b.b_.finish());
         }
 
         void visit(AST *ast) override;
