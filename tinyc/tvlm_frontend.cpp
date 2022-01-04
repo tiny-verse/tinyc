@@ -3,6 +3,7 @@
 #include "tvlm_frontend.h"
 #include "typechecker.h"
 #include "frontend.h"
+#define ELEMADDR
 
 namespace tinyc {
 
@@ -331,6 +332,13 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
     void TvlmFrontend::visit(ASTFunDecl *ast) {
         tvlm::Function *f = new tvlm::Function{ast};
         f->setName(ast->name.name());
+        if( frontend_.getTypeDouble() == ast->typeDecl->type() ){
+            f->setResultType(tvlm::ResultType::Double);
+        }else if (frontend_.getTypeVoid() == ast->typeDecl->type() ){
+            f->setResultType(tvlm::ResultType::Void);
+        }else{
+            f->setResultType(tvlm::ResultType::Integer);
+        }
         b_.addGlobalVariable(f->name(), append(new tvlm::LoadImm{(int64_t) 0, ast}));
         b_.enterFunction(f);
         for (size_t i = 0, e = ast->args.size(); i != e; ++i) {
@@ -345,10 +353,10 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
 
     void TvlmFrontend::visit(ASTStructDecl *ast) {
 
-        if (ast->isDefinition) {
-            //TODO add types to IL?
-            // il register new type
-        }
+//        if (ast->isDefinition) {
+//            // add types to IL?
+//            // il register new type
+//        }
     }
 
     void TvlmFrontend::visit(ASTFunPtrDecl *ast) {
@@ -808,36 +816,42 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             }
         }
     }
-/** USING ELEMADDR*/
-//    void TvlmFrontend::visit(ASTIndex *ast) {
-//        bool lvalue = lvalue_;
-//        Type::Pointer * pointer = dynamic_cast<Type::Pointer* >(ast->base->type());
-//        if(!pointer){
-//            throw "ASTIndex called on non-pointer type";
-//        }
-//        tvlm::ElemAddr * addr;
-//        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-//        if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
-//            addr =  new tvlm::ElemAddr(addrInstr, ast);
-//            append(addr);
-//        }
-//        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
-//        lastIns_ = (addr);
-//
-////        tvlm::ElemAddr * addr = new tvlm::ElemAddr(visitChild(ast->base, true), ast);
-////        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
-////        append (addr);
-//        if(lvalue){
-//            lastIns_ = addr;
-//        }else{
-//            if(ast->base->type() == frontend_.getTypeDouble()){
-//                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Double, ast));
-//            }else{
-//                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Integer, ast));
-//            }
-//        }
-//    }
 
+#ifdef ELEMADDR
+/** USING ELEMADDR*/
+    void TvlmFrontend::visit(ASTIndex *ast) {
+        bool lvalue = lvalue_;
+        Type::Pointer * pointer = dynamic_cast<Type::Pointer* >(ast->base->type());
+        if(!pointer){
+            throw "ASTIndex called on non-pointer type";
+        }
+        tvlm::ElemAddr * addr;
+        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
+        if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
+            addr =  new tvlm::ElemAddr(addrInstr, ast);
+            append(addr);
+        }
+        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
+        if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){
+            append(addr);
+        }else{
+            lastIns_ = (addr);
+        }
+
+//        tvlm::ElemAddr * addr = new tvlm::ElemAddr(visitChild(ast->base, true), ast);
+//        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
+//        append (addr);
+        if(lvalue){
+            lastIns_ = addr;
+        }else{
+            if(ast->base->type() == frontend_.getTypeDouble()){
+                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Double, ast));
+            }else{
+                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Integer, ast));
+            }
+        }
+    }
+#else
     /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTIndex *ast) {
         bool lvalue = lvalue_;
@@ -847,11 +861,6 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
         }
 
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-
-//        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
-//        tvlm::ElemAddr * addr = new tvlm::ElemAddr(visitChild(ast->base, true), ast);
-//        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
-//        append (addr);
         tvlm::Instruction * indexInstr = visitChild(ast->index);
         tvlm::Instruction * offsetInstr = append(new tvlm::LoadImm((int64_t) pointer->base()->size(), ast));
         tvlm::Instruction * tmpInstr = append(new tvlm::BinOp(tvlm::BinOpType::MUL, tvlm::Instruction::Opcode::MUL,
@@ -868,25 +877,28 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             }
         }
     }
-
+#endif
+#ifdef ELEMADDR
     /** WITH ELEMADDR*/
-//    void TvlmFrontend::visit(ASTMember *ast) {
-//        bool lvalue = lvalue_;
-//        Type::Struct *type = dynamic_cast<Type::Struct *>(ast->base->type());
-//
-//         tvlm::Instruction * res;
-//        //resolve access to member
-//        tvlm::ElemAddr * addr;
-//        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-//        if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
-//            addr =  new tvlm::ElemAddr(addrInstr, ast);
-//            append(addr);
-//        }
-//        res = lastIns_ =
-//        resolveAccessToMember(b_, type, addr, ast->member, lvalue, ast, frontend_);
-//
-//    }
+    void TvlmFrontend::visit(ASTMember *ast) {
+        bool lvalue = lvalue_;
+        Type::Struct *type = dynamic_cast<Type::Struct *>(ast->base->type());
 
+         tvlm::Instruction * res;
+        //resolve access to member
+        tvlm::ElemAddr * addr;
+        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
+        if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
+            addr =  new tvlm::ElemAddr(addrInstr, ast);
+//            append(addr);
+        }
+        res = lastIns_ =
+        resolveAccessToMember(b_, type, addr, ast->member, lvalue, ast, frontend_);
+        if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){
+            append(addr);
+        }
+    }
+#else
     /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTMember *ast) {
         bool lvalue = lvalue_;
@@ -895,30 +907,34 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
         lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
     }
-
+#endif
+#ifdef ELEMADDR
     /**WITH ELEMADDR*/
-//    void TvlmFrontend::visit(ASTMemberPtr *ast) {
-//        bool lvalue = lvalue_;
-//        Type *baseType = ast->base->type();
-//
-//        Type::Pointer *ptype = dynamic_cast<Type::Pointer *>(baseType);
-//        Type::Struct *type = dynamic_cast<Type::Struct *>(ptype->base());
-//
-//        tvlm::Instruction * res;
-//        //resolve address from Pointer
-//        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, true),tvlm::ResultType::Integer,ast));
-//
-//        //resolve access to member
-//        tvlm::ElemAddr * elem;
-//        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-//        if(!(elem = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
-//            elem =  new tvlm::ElemAddr(addrInstr, ast);
-//            append(elem);
-//        }
-//        res = lastIns_ =
-//        resolveAccessToMember(b_, type, elem, ast->member, lvalue, ast, frontend_);
-//    }
+    void TvlmFrontend::visit(ASTMemberPtr *ast) {
+        bool lvalue = lvalue_;
+        Type *baseType = ast->base->type();
 
+        Type::Pointer *ptype = dynamic_cast<Type::Pointer *>(baseType);
+        Type::Struct *type = dynamic_cast<Type::Struct *>(ptype->base());
+
+        tvlm::Instruction * res;
+        //resolve address from Pointer
+        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, true),tvlm::ResultType::Integer,ast));
+
+        //resolve access to member
+        tvlm::ElemAddr * elem;
+        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
+        if(!(elem = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
+            elem =  new tvlm::ElemAddr(addrInstr, ast);
+//            append(elem);
+        }
+        res = lastIns_ =
+        resolveAccessToMember(b_, type, elem, ast->member, lvalue, ast, frontend_);
+        if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){
+            append(elem);
+        }
+    }
+#else
     /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTMemberPtr *ast) {
         bool lvalue = lvalue_;
@@ -936,6 +952,7 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
 
         lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
     }
+#endif
 
     void TvlmFrontend::visit(ASTCall *ast) {
         std::vector<tvlm::Instruction *> argValues;
@@ -943,7 +960,7 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             argValues.push_back(visitChild(i));
         }
         if (auto i = dynamic_cast<ASTIdentifier *>(ast->function.get())) {
-            auto it = b_.functions().find(i->name);
+
             tvlm::Function *f = b_.findFnc(i->name);
             if (f) {
                 append(new tvlm::CallStatic{f, std::move(argValues), ast});

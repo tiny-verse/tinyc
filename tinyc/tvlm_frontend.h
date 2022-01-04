@@ -14,7 +14,7 @@ namespace tinyc {
 
     class TvlmFrontend : public ASTVisitor {
     public:
-        TvlmFrontend(Frontend &frontend) : frontend_{frontend} {}
+        TvlmFrontend(Frontend &frontend) : frontend_{frontend} , b_(){}
 
         static tvlm::Program translate(AST *ast, Frontend &frontend) {
             TvlmFrontend b(frontend);
