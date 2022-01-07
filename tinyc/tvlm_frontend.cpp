@@ -311,7 +311,10 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
                 tvlm::Instruction *addr;
             if(arrayType){
                 varSize = arrayType->base->type()->size();
-                addr = append(new tvlm::AllocL{varSize * staticalyResolve(arrayType->size.get()), visitChild(arrayType->size), ast});
+//                addr = append(new tvlm::AllocL{varSize * staticalyResolve(arrayType->size.get()), visitChild(arrayType->size), ast});
+//                  //nechat to na IL
+                addr = append(new tvlm::AllocL{varSize, visitChild(arrayType->size), ast});
+
             }else {
                 addr = append(new tvlm::AllocL{varSize,nullptr, ast});
             }
