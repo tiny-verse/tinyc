@@ -795,7 +795,7 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             throw ParserError{STR("Unsupported unary operator: " << ast->op), ast->location(), false};
         }
 
-        throw STR("not implemented ASTUnaryPostOp op:" << ast->op);
+        // throw ParserError {STR("not implemented ASTUnaryPostOp op:" << ast->op), ast->location(), false};
     }
 
     void TvlmFrontend::visit(ASTAddress *ast) {
