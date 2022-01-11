@@ -124,9 +124,15 @@ namespace tinyc {
             return ins;
         }
 
+        Type * registerType(Type * type){
+            allocated_types_.emplace_back(type);
+            return type;
+        }
+
         Frontend &frontend_;
         tvlm::ILBuilder b_;
         tvlm::Instruction *lastIns_;
+        std::vector<std::unique_ptr<Type>> allocated_types_;
         bool lvalue_ = false;
 
     };
