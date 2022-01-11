@@ -476,8 +476,8 @@ namespace tinyc {
     class ASTSwitch : public AST {
     public:
         std::unique_ptr<AST> cond;
-        std::unique_ptr<AST> defaultCase;
-        std::unordered_map<int, std::unique_ptr<AST>> cases;
+        AST *  defaultCase;
+        std::vector<std::pair<int, std::unique_ptr<AST>>> cases;
 
         ASTSwitch(Token const & t):
             AST{t} {
@@ -492,7 +492,7 @@ namespace tinyc {
                 p.newline();
                 p << p.keyword << "case " << p.numberLiteral << i.first << p.symbol << ":" << *i.second;
             }
-            if (defaultCase.get() != nullptr) {
+            if (defaultCase != nullptr) {
                 p.newline();
                 p << p.keyword << "default" << p.symbol << ":" << *defaultCase;
             }

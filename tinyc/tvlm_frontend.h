@@ -11,6 +11,8 @@
 
 
 namespace tinyc {
+    using ILType = tvlm::Type;
+    using CType = tinyc::Type;
 
     class TvlmFrontend : public ASTVisitor {
     public:
@@ -117,6 +119,9 @@ namespace tinyc {
         }
 
     private:
+        tvlm::Instruction * resolveAssignment( Type *type, tvlm::Instruction *dstAddr,
+                                              tvlm::Instruction *srcVal, AST const *ast);
+
 
         tvlm::Instruction *append(tvlm::Instruction *ins) {
             b_.add(ins);
@@ -124,17 +129,17 @@ namespace tinyc {
             return ins;
         }
 
-        Type * registerType(Type * type){
-            allocated_types_.emplace_back(type);
-            return type;
-        }
-
         Frontend &frontend_;
         tvlm::ILBuilder b_;
         tvlm::Instruction *lastIns_;
-        std::vector<std::unique_ptr<Type>> allocated_types_;
         bool lvalue_ = false;
 
+        ILType *getILType(Type *pType);
+
+        tvlm::Instruction *
+        resolveAccessToMember(ILType::Struct *strct, tvlm::Instruction *loadAddr,
+                              const Symbol &member,
+                              bool lvalue, const AST *ast);
     };
 
     static size_t staticalyResolve(AST * ast) {

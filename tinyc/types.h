@@ -175,17 +175,6 @@ namespace tinyc {
             return nullptr;
         }
 
-        int getFieldOffset(Symbol name)const{
-            int acc = 0;
-            for (auto & i : fields_){
-                if (i.first == name){
-                    return acc;
-                }else{
-                    acc += i.second->size();
-                }
-            }
-            return -1;
-        }
 
         int size()const{
             int size = 0;
@@ -260,7 +249,10 @@ namespace tinyc {
         Type * returnType_;
 
         std::vector<Type *> args_;
-    }; // tinyc::Type::Fun
+    };
+
+
+    // tinyc::Type::Fun
 
 
 } // namespace tinyc

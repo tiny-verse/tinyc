@@ -144,18 +144,25 @@ namespace tinyc {
         pop(Symbol::CurlyOpen);
         while (!condPop(Symbol::CurlyClose)) {
             if (top() == Symbol::KwDefault) {
-                if (result->defaultCase.get() != nullptr)
+                if (result->defaultCase != nullptr)
                     throw ParserError("Default case already provided", top().location(), false);
                 pop();
                 pop(Symbol::Colon);
-                result->defaultCase = CASE_BODY();
+                auto tmp = CASE_BODY();
+                result->defaultCase = tmp.get();
+                result->cases.emplace_back(0, std::move(tmp));
             } else if (condPop(Symbol::KwCase)) {
                 Token const & t = top();
                 int value = pop(Token::Kind::Integer).valueInt();
-                if (result->cases.find(value) != result->cases.end())
+                auto it = result->cases.begin();
+                while(it != result->cases.end() && it->first != value ){
+                    it++;
+                }
+//                if (result->cases.find(value) != result->cases.end())
+                if(it != result->cases.end())
                     throw ParserError(STR("Case " << value << " already provided"), t.location(), false);
                 pop(Symbol::Colon);
-                result->cases.insert(std::make_pair(value, CASE_BODY()));
+                result->cases.emplace_back(value, CASE_BODY());
             } else {
                 throw ParserError(STR("Expected case or default keyword but " << top() << " found"), top().location(), eof());
             }

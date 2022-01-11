@@ -91,21 +91,21 @@ namespace tinyc {
     }
 
 
-//    tvlm::Instruction * resolveAccessToMember(tvlm::ILBuilder & b,Type::Struct * strct,
-//                                              tvlm::ElemAddr * loadAddr, const Symbol & member,
-//                                              bool lvalue,
-//                                              const AST * ast, Frontend & frontend){
-//        loadAddr->addOffset(strct->getFieldOffset(member));
-//
-//        if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
-//            tvlm::ResultType resType = ( strct->getFieldType(member) == frontend.getTypeDouble() ) ?
-//                                       tvlm::ResultType::Double : tvlm::ResultType::Integer;
-//
-//            return b.add(new tvlm::Load((tvlm::Instruction *)loadAddr, resType, ast));
-//        }
-//        return loadAddr;
-//    }
-    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,Type::Struct * strct,
+    tvlm::Instruction * TvlmFrontend::resolveAccessToMember(ILType::Struct * strct,
+                                              tvlm::Instruction * loadAddr, const Symbol & member,
+                                              bool lvalue,
+                                              const AST * ast){
+        tvlm::Instruction * offset = append(new tvlm::LoadImm((int64_t)strct->getFieldOffset(member), ast));
+        tvlm::Instruction * addr = append(new tvlm::ElemAddrOffset(loadAddr, offset, ast));
+
+        if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
+            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType() );
+
+            return append(new tvlm::Load((tvlm::Instruction *)loadAddr, resType, ast));
+        }
+        return loadAddr;
+    }
+    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,ILType::Struct * strct,
                                               tvlm::Instruction * loadAddr, const Symbol & member,
                                               bool lvalue,
                                               const AST * ast, Frontend & frontend){
@@ -113,16 +113,13 @@ namespace tinyc {
         tvlm::Instruction * addr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, loadAddr, offset, ast));
 
         if(!lvalue){
-            tvlm::ResultType resType = ( strct->getFieldType(member) == frontend.getTypeDouble() ) ?
-                                       tvlm::ResultType::Double : tvlm::ResultType::Integer;
+            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType());
 
             return b.add(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
         }
-
         return addr;
     }
-//    tvlm::Instruction * resolveAssignment(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
-//                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend);
+
     tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
                                           tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend);
 //    tvlm::Instruction * copyStructFieldByField(tvlm::ILBuilder &b, Type::Struct * strct,
@@ -173,120 +170,86 @@ namespace tinyc {
 //        return srcAddrBase;
 //
 //    }
-    tvlm::Instruction * copyStructFieldByFieldWITHOUTELEMADDR(tvlm::ILBuilder &b, Type::Struct * strct,
-                                               tvlm::Instruction * srcAddrBase,
-                                               tvlm::Instruction * dstAddrBase,
-                                               AST const *ast, Frontend & frontend
-                                   ){
-
-        for (auto & f : strct->fields()) {
-            Type::Struct * fieldStruct = dynamic_cast<Type::Struct *>(f.second);
-            if( fieldStruct ){
-
-                tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t )strct->getFieldOffset(f.first), ast));
-                tvlm::Instruction * srcAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,srcAddrBase, offset , ast));
-
-
-                tvlm::Instruction * dstAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,dstAddrBase, offset , ast));
-
-
-                copyStructFieldByFieldWITHOUTELEMADDR(b, fieldStruct, srcAddr, dstAddr, ast, frontend);
-
-            }else{
-
-                //dstAddr->addOffset(strct->getFieldOffset(f.first));
-                tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t )strct->getFieldOffset(f.first), ast));
-                tvlm::Instruction * dstAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,dstAddrBase, offset , ast));
-
-                tvlm::Instruction * srcVal =
-//                srcAddr->addIndex(off, strct->getFieldOffset(f.first)); //-- already Included
-                        resolveAccessToMemberWITHOUTELEMADDR(b, fieldStruct, srcAddrBase,f.first, true, ast, frontend);
-
-                resolveAssignmentWITHOUTELEMADDR(b, f.second, dstAddr, srcVal, ast, frontend);
-            }
-        }
-        return srcAddrBase;
-
-    }
-    tvlm::Instruction * resolveAssignment(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
-                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend) {
+//    tvlm::Instruction * copyStructFieldByFieldWITHOUTELEMADDR(tvlm::ILBuilder &b, Type::Struct * strct,
+//                                               tvlm::Instruction * srcAddrBase,
+//                                               tvlm::Instruction * dstAddrBase,
+//                                               AST const *ast, Frontend & frontend
+//                                   ){
+//
+//        for (auto & f : strct->fields()) {
+//            Type::Struct * fieldStruct = dynamic_cast<Type::Struct *>(f.second);
+//            if( fieldStruct ){
+//
+//                tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t )strct->getFieldOffset(f.first), ast));
+//                tvlm::Instruction * srcAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,srcAddrBase, offset , ast));
+//
+//
+//                tvlm::Instruction * dstAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,dstAddrBase, offset , ast));
+//
+//
+//                copyStructFieldByFieldWITHOUTELEMADDR(b, fieldStruct, srcAddr, dstAddr, ast, frontend);
+//
+//            }else{
+//
+//                //dstAddr->addOffset(strct->getFieldOffset(f.first));
+//                tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t )strct->getFieldOffset(f.first), ast));
+//                tvlm::Instruction * dstAddr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD,dstAddrBase, offset , ast));
+//
+//                tvlm::Instruction * srcVal =
+////                srcAddr->addIndex(off, strct->getFieldOffset(f.first)); //-- already Included
+//                        resolveAccessToMemberWITHOUTELEMADDR(b, fieldStruct, srcAddrBase,f.first, true, ast, frontend);
+//
+//                resolveAssignmentWITHOUTELEMADDR(b, f.second, dstAddr, srcVal, ast, frontend);
+//            }
+//        }
+//        return srcAddrBase;
+//
+//    }
+    tvlm::Instruction * TvlmFrontend::resolveAssignment( Type *type, tvlm::Instruction *dstAddr,
+                                          tvlm::Instruction *srcVal, AST const *ast) {
         if (dynamic_cast<tinyc::Type::Alias *>(type)) {
-            return resolveAssignment(b, dynamic_cast<tinyc::Type::Alias *>(type)->base(), dstAddr, srcVal, ast, frontend);
+            return resolveAssignment(dynamic_cast<tinyc::Type::Alias *>(type)->base(), dstAddr, srcVal, ast);
         } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
-            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+            append(new tvlm::Store{srcVal, dstAddr, ast});
             return srcVal;
         } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
-            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+            append(new tvlm::Store{srcVal, dstAddr, ast});
             return srcVal;
         } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
             CType::Struct * strct = dynamic_cast<CType::Struct * >(type);
-               ILType::Struct * tvlmStruct = new ILType::Struct(strct->ast()->name);
+               ILType::Struct * tvlmStruct = dynamic_cast<ILType::Struct *>(getILType(strct));
              return new tvlm::StructAssign(srcVal, dstAddr, tvlmStruct, ast);
-//            return copyStructFieldByField(b, strct, srcVal, dstAddr, ast, frontend);
-                    //            for (auto & f : strct->fields()) {
-                    //                Type::Struct * fieldStruct = dynamic_cast<Type::Struct *>(f.second);
-                    //                if( fieldStruct ){
-                    //
-                    //                    tvlm::ElemAddr * srcAddr =  dynamic_cast<tvlm::ElemAddr*>(srcVal);
-                    //                    if(!srcAddr){
-                    //                        srcAddr = new tvlm::ElemAddr(srcVal, ast);
-                    //                        b.add(srcAddr);
-                    //                    }
-                    //
-                    //                    srcAddr->addOffset( strct->getFieldOffset(f.first));
-                    //                    resolveAssignment(b, f.second, )
-                    //                }else{
-                    //                    tvlm::ResultType fieldType = f.second->size() == 8 ? tvlm::ResultType::Double : tvlm::ResultType::Integer;
-                    //                    //TODO what if field == struct
-                    //                    tvlm::ElemAddr * valElem =  new tvlm::ElemAddr(srcVal, ast);
-                    //                    valElem->addIndex(off, strct->getFieldOffset(f.first));
-                    //                    tvlm::Instruction * valAddr = b.add(valElem);
-                    //                    tvlm::Instruction * tmp = b.add(new tvlm::Load( valAddr,fieldType, ast));
-                    //
-                    //                    tvlm::ElemAddr * resElem =  new tvlm::ElemAddr(dstAddr, ast);
-                    //                    resElem->addIndex(off, strct->getFieldOffset(f.first));
-                    //                    tvlm::Instruction * resAddr = b.add(resElem);
-                    //
-                    //                    b.add(new tvlm::Store(tmp, resAddr, ast ));
-                    //                }
-                    //            }
-                    //            //TODO dummy linear memcpy ? or represent with store and resolve by compiling to target
-                    //            size_t structSize = resolveStructSize(strct->fields(), frontend);
-                    //            for(size){
-                    //
-                    //            }
-
 
             return srcVal;
 
         } else if (dynamic_cast<Type::Fun * >(type)) {
-            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+            append(new tvlm::Store{srcVal, dstAddr, ast});
             return srcVal;
         }
         throw "not implemented type";
         return nullptr;
     }
-tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
-                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend) {
-        if (dynamic_cast<tinyc::Type::Alias *>(type)) {
-            return resolveAssignmentWITHOUTELEMADDR(b, dynamic_cast<tinyc::Type::Alias *>(type)->base(), dstAddr, srcVal, ast, frontend);
-        } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
-            b.add(new tvlm::Store{srcVal, dstAddr, ast});
-            return srcVal;
-        } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
-            b.add(new tvlm::Store{srcVal, dstAddr, ast});
-            return srcVal;
-        } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
-            Type::Struct * strct = dynamic_cast<tinyc::Type::Struct * >(type);
-            return copyStructFieldByFieldWITHOUTELEMADDR(b, strct, srcVal, dstAddr, ast, frontend);
-
-        } else if (dynamic_cast<Type::Fun * >(type)) {
-            b.add(new tvlm::Store{srcVal, dstAddr, ast});
-            return srcVal;
-        }
-        throw "not implemented type";
-        return nullptr;
-    }
+//tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
+//                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend) {
+//        if (dynamic_cast<tinyc::Type::Alias *>(type)) {
+//            return resolveAssignmentWITHOUTELEMADDR(b, dynamic_cast<tinyc::Type::Alias *>(type)->base(), dstAddr, srcVal, ast, frontend);
+//        } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
+//            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+//            return srcVal;
+//        } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
+//            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+//            return srcVal;
+//        } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
+//            Type::Struct * strct = dynamic_cast<tinyc::Type::Struct * >(type);
+//            return copyStructFieldByFieldWITHOUTELEMADDR(b, strct, srcVal, dstAddr, ast, frontend);
+//
+//        } else if (dynamic_cast<Type::Fun * >(type)) {
+//            b.add(new tvlm::Store{srcVal, dstAddr, ast});
+//            return srcVal;
+//        }
+//        throw "not implemented type";
+//        return nullptr;
+//    }
 
     void TvlmFrontend::visit(ASTVarDecl *ast) {
 
@@ -295,14 +258,14 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             auto arrayType = dynamic_cast<ASTArrayType*>(ast->type.get());
             tvlm::Instruction *addr;
             if(arrayType){
-                addr = append(new tvlm::AllocG{varSize, visitChild(arrayType->base), ast});
+                addr = append(new tvlm::AllocG{getILType(ast->type->type()), visitChild(arrayType->base), ast});
             }else {
-                addr = append(new tvlm::AllocG{varSize,nullptr, ast});
+                addr = append(new tvlm::AllocG{getILType(ast->type->type()), nullptr, ast});
             }
             tvlm::Instruction *val = nullptr;
             if (ast->value != nullptr) {
                 val = visitChild(ast->value);
-                resolveAssignment(b_, ast->value->type(), addr, val, ast, frontend_);
+                resolveAssignment( ast->value->type(), addr, val, ast);
             }
             b_.addGlobalVariable(ast->name->name, addr);
             lastIns_ = val;
@@ -311,20 +274,20 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             size_t varSize = ast->type->type()->size();
             auto arrayType = dynamic_cast<ASTArrayType*>(ast->type.get());
                 tvlm::Instruction *addr;
+            ILType*  ilType = getILType(ast->type->type());
             if(arrayType){
-                varSize = arrayType->base->type()->size();
 //                addr = append(new tvlm::AllocL{varSize * staticalyResolve(arrayType->size.get()), visitChild(arrayType->size), ast});
 //                  //nechat to na IL
-                addr = append(new tvlm::AllocL{varSize, visitChild(arrayType->size), ast});
+                addr = append(new tvlm::AllocL{ilType, visitChild(arrayType->size), ast});
 
             }else {
-                addr = append(new tvlm::AllocL{varSize,nullptr, ast});
+                addr = append(new tvlm::AllocL{ilType ,nullptr, ast});
             }
             tvlm::Instruction *val = nullptr;
             if (ast->value != nullptr) {
 
                 val = visitChild(ast->value);
-                resolveAssignment(b_, ast->value->type(), addr, val, ast, frontend_);
+                resolveAssignment( ast->value->type(), addr, val, ast);
             }
             b_.addVariable(ast->name->name, addr);
 
@@ -423,17 +386,20 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             tvlm::BasicBlock *defaultCaseBB = nullptr;
             for (auto it = ast->cases.begin(); it != ast->cases.end(); it++) {
                 auto &c = *it;
-                if (c.second == ast->defaultCase) {
+                if (c.second.get() == ast->defaultCase) { // DEFAULT CASE
+                    auto tmp_bCase = bCase;
+//                    auto tmp_bSuccessCmp = bSuccessCmp;
+//                    bSuccessCmp = b_.createBasicBlock("bb_succ_default");
 
                     tvlm::BasicBlock *bSuccessCmpNext;
-                    auto nextCaseIt = it++;
+                    auto nextCaseIt = it+1;
                     if (nextCaseIt != ast->cases.end()) {
-                        bCase->setName("bb_case_" + std::to_string(nextCaseIt->first));
-                        bSuccessCmpNext = b_.createBasicBlock("bb_succ" + std::to_string(nextCaseIt->first));
+                        bCase = b_.createBasicBlock("bb_case_default");
+                        tmp_bCase->setName("bb_case_" + std::to_string(nextCaseIt->first) );
+                        bSuccessCmpNext = b_.createBasicBlock("bb_succ_" + std::to_string(nextCaseIt->first));
                     } else {
                         b_.enterBasicBlock(bCase);
-                        append(new tvlm::Jump(bAfter, ast));
-
+                        append(new tvlm::Jump(bSuccessCmp, ast));
                         bSuccessCmpNext = bAfter;
                     }
                     defaultCaseBB = b_.enterBasicBlock(bSuccessCmp);
@@ -441,24 +407,27 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
                     visitChild(c.second);
                     append(new tvlm::Jump{bSuccessCmpNext, ast});
 
+                    bCase = tmp_bCase;
                     bSuccessCmp = bSuccessCmpNext;
-                } else {
+                } else {                        // ORDINARY CASE
 
                     b_.enterBasicBlock(bCase);
 
                     tvlm::Instruction *caseVal = append(new tvlm::LoadImm((int64_t) c.first, c.second.get()));
                     tvlm::Instruction *jmpVal = append(new tvlm::BinOp{tvlm::BinOpType::NEQ, tvlm::Instruction::Opcode::NEQ, condVal, caseVal, ast});
 
-                    tvlm::BasicBlock *bSuccessCmpNext;
-                    auto nextCaseIt = it++;
+                    tvlm::BasicBlock *bSuccessCmpNext = nullptr;
+                    auto nextCaseIt = it+1;
                     if (nextCaseIt != ast->cases.end()) {
                         bCase = b_.createBasicBlock("bb_case_" + std::to_string(nextCaseIt->first));
-                        bSuccessCmpNext = b_.createBasicBlock("bb_succ_ " + std::to_string(nextCaseIt->first));
+                        bSuccessCmpNext = b_.createBasicBlock("bb_succ_" + std::to_string(nextCaseIt->first));
                     } else {
                         if (!ast->defaultCase) {
                             bCase = bAfter;
                         } else {
-                            bCase = defaultCaseBB;
+                            if(defaultCaseBB) bCase = defaultCaseBB;
+                            else throw "WTF";
+//                            bCase =
                         }
                         bSuccessCmpNext = bAfter;
                     }
@@ -749,7 +718,7 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
             throw ParserError(STR("assignment to not fully defined type " << ast->lvalue->type()->toString()),
                               ast->location(), false);
         }
-        resolveAssignment(b_, identifierType, addr, val, ast, frontend_);
+        resolveAssignment( identifierType, addr, val, ast);
         lastIns_ = val;
     }
 
@@ -910,7 +879,9 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
         Type::Struct *type = dynamic_cast<Type::Struct *>(ast->base->type());
 
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-        lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
+//        lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
+        lastIns_ = resolveAccessToMember(dynamic_cast<ILType::Struct *>(getILType(type)),
+                                         addrInstr, ast->member, lvalue, ast);
     }
 #endif
 #ifdef ELEMADDR
@@ -955,7 +926,10 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
         //resolve access to member
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
 
-        lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
+//        lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
+        lastIns_ = resolveAccessToMember(
+                dynamic_cast<ILType::Struct *>(getILType(type)),
+                addrInstr, ast->member, lvalue, ast);
     }
 #endif
 
@@ -1001,6 +975,36 @@ tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *t
     void TvlmFrontend::visit(ASTWrite *ast) {
         tvlm::Instruction *val = visitChild(ast->value);
         append(new tvlm::PutChar(val, ast));
+    }
+
+    ILType *TvlmFrontend::getILType(Type *pType) {
+        auto cAliasType = dynamic_cast<CType::Alias*>(pType);
+        if(cAliasType) {
+            return getILType(cAliasType->base());
+        }
+        auto cPODType = dynamic_cast<CType::POD*>(pType);
+        if(cPODType && frontend_.getTypeInt() == pType) {
+            return b_.registerType(new ILType::Integer());
+
+        }else if(cPODType && frontend_.getTypeDouble() == pType) {
+            return b_.registerType(new ILType::Double());
+
+        }else if(cPODType && frontend_.getTypeChar() == pType) {
+            return b_.registerType(new ILType::Char());
+
+        }
+        auto cStructType = dynamic_cast<CType::Struct*>(pType);
+        if(cStructType) {
+            std::vector<std::pair<Symbol, ILType *>> fields;
+            for(auto & f : cStructType->fields()) {
+                fields.emplace_back(f.first, getILType(f.second));
+            }
+            return b_.registerType(new ILType::Struct(cStructType->ast()->name, fields));
+        }
+        auto cFunType = dynamic_cast<CType::Fun*>(pType);
+        if(cFunType) {
+        }
+        return nullptr;
     }
 
 } // namespace tinyc
