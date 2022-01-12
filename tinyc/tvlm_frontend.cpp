@@ -477,8 +477,10 @@ namespace tinyc {
         tvlm::BasicBlock *bBody = b_.createBasicBlock();
         tvlm::BasicBlock *bAfter = b_.createBasicBlock();
         tvlm::ILBuilder::Context oldContext = b_.enterContext(tvlm::ILBuilder::Context::Loop(bAfter, bCond));
+        b_.add(new tvlm::Jump(bBody, ast));
         b_.enterBasicBlock(bBody);
         visitChild(ast->body);
+        b_.add(new tvlm::Jump(bCond, ast));
         b_.enterBasicBlock(bCond);
         tvlm::Instruction *condVal = visitChild(ast->cond);
         append(new tvlm::CondJump{condVal, ast});
@@ -1004,6 +1006,11 @@ namespace tinyc {
         auto cFunType = dynamic_cast<CType::Fun*>(pType);
         if(cFunType) {
         }
+        auto cPointerType = dynamic_cast<CType::Pointer*>(pType);
+        if(cPointerType) {
+            return b_.registerType(new ILType::Pointer(getILType(cPointerType->base())));
+        }
+
         return nullptr;
     }
 
