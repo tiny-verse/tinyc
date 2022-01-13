@@ -105,23 +105,23 @@ namespace tinyc {
         }
         return loadAddr;
     }
-    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,ILType::Struct * strct,
-                                              tvlm::Instruction * loadAddr, const Symbol & member,
-                                              bool lvalue,
-                                              const AST * ast, Frontend & frontend){
-        tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t)strct->getFieldOffset(member), ast));
-        tvlm::Instruction * addr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, loadAddr, offset, ast));
+//    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,ILType::Struct * strct,
+//                                              tvlm::Instruction * loadAddr, const Symbol & member,
+//                                              bool lvalue,
+//                                              const AST * ast, Frontend & frontend){
+//        tvlm::Instruction * offset = b.add(new tvlm::LoadImm((int64_t)strct->getFieldOffset(member), ast));
+//        tvlm::Instruction * addr = b.add(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, loadAddr, offset, ast));
+//
+//        if(!lvalue){
+//            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType());
+//
+//            return b.add(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
+//        }
+//        return addr;
+//    }
 
-        if(!lvalue){
-            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType());
-
-            return b.add(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
-        }
-        return addr;
-    }
-
-    tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
-                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend);
+//    tvlm::Instruction * resolveAssignmentWITHOUTELEMADDR(tvlm::ILBuilder &b, Type *type, tvlm::Instruction *dstAddr,
+//                                          tvlm::Instruction *srcVal, AST const *ast, Frontend & frontend);
 //    tvlm::Instruction * copyStructFieldByField(tvlm::ILBuilder &b, Type::Struct * strct,
 //                                               tvlm::Instruction * srcAddrBase,
 //                                               tvlm::Instruction * dstAddrBase,
@@ -1005,6 +1005,7 @@ namespace tinyc {
         }
         auto cFunType = dynamic_cast<CType::Fun*>(pType);
         if(cFunType) {
+            return b_.registerType(new ILType::Integer());//no need
         }
         auto cPointerType = dynamic_cast<CType::Pointer*>(pType);
         if(cPointerType) {
