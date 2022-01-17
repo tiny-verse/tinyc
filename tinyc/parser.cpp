@@ -308,6 +308,12 @@ namespace tinyc {
             while (! condPop(Symbol::CurlyClose)) {
                 std::unique_ptr<ASTType> type{TYPE()};
                 decl->fields.push_back(std::make_pair(IDENT(), std::move(type)));
+                if (condPop(Symbol::SquareOpen)) {
+                    std::unique_ptr<AST> index{E9()};
+                    pop(Symbol::SquareClose);
+                    // now we have to update the type
+                    decl->fields.back().second.reset(new ASTArrayType{start, std::move(decl->fields.back().second), std::move(index) });
+                }
                 pop(Symbol::Semicolon);
             }
             decl->isDefinition = true;

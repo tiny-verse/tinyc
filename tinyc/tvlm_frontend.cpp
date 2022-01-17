@@ -427,7 +427,6 @@ namespace tinyc {
                         } else {
                             if(defaultCaseBB) bCase = defaultCaseBB;
                             else throw "WTF";
-//                            bCase =
                         }
                         bSuccessCmpNext = bAfter;
                     }
@@ -994,6 +993,9 @@ namespace tinyc {
         }else if(cPODType && frontend_.getTypeChar() == pType) {
             return b_.registerType(new ILType::Char());
 
+        }else if(cPODType && frontend_.getTypeVoid() == pType) {
+            return b_.registerType(new ILType::Void());
+
         }
         auto cStructType = dynamic_cast<CType::Struct*>(pType);
         if(cStructType) {
@@ -1012,6 +1014,7 @@ namespace tinyc {
             return b_.registerType(new ILType::Pointer(getILType(cPointerType->base())));
         }
 
+        throw "wtf";
         return nullptr;
     }
 
