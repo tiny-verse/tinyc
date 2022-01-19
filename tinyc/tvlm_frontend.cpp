@@ -101,9 +101,9 @@ namespace tinyc {
         if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
             tvlm::ResultType resType = ( strct->getFieldType(member)->registerType() );
 
-            return append(new tvlm::Load((tvlm::Instruction *)loadAddr, resType, ast));
+            return append(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
         }
-        return loadAddr;
+        return addr;
     }
 //    tvlm::Instruction * resolveAccessToMemberWITHOUTELEMADDR(tvlm::ILBuilder & b,ILType::Struct * strct,
 //                                              tvlm::Instruction * loadAddr, const Symbol & member,
@@ -258,7 +258,10 @@ namespace tinyc {
             auto arrayType = dynamic_cast<ASTArrayType*>(ast->type.get());
             tvlm::Instruction *addr;
             if(arrayType){
-                addr = append(new tvlm::AllocG{getILType(ast->type->type()), visitChild(arrayType->base), ast});
+                auto ptrType = dynamic_cast<CType::Pointer*>(ast->type->type());
+                auto arrSize =  visitChild(arrayType->base);
+                auto arr = b_.registerType(new ILType::Array(getILType(ptrType->base()), arrSize));
+                addr = append(new tvlm::AllocG{arr,arrSize, ast});
             }else {
                 addr = append(new tvlm::AllocG{getILType(ast->type->type()), nullptr, ast});
             }
@@ -278,7 +281,11 @@ namespace tinyc {
             if(arrayType){
 //                addr = append(new tvlm::AllocL{varSize * staticalyResolve(arrayType->size.get()), visitChild(arrayType->size), ast});
 //                  //nechat to na IL
-                addr = append(new tvlm::AllocL{ilType, visitChild(arrayType->size), ast});
+                auto ptrType = dynamic_cast<CType::Pointer*>(ast->type->type());
+                auto arrSize =  visitChild(arrayType->base);
+                auto arr = b_.registerType(new ILType::Array(getILType(ptrType->base()), arrSize));
+                addr = append(new tvlm::AllocL{arr,arrSize, ast});
+//                addr = append(new tvlm::AllocL{ilType, visitChild(arrayType->size), ast});
 
             }else {
                 addr = append(new tvlm::AllocL{ilType ,nullptr, ast});
@@ -838,9 +845,11 @@ namespace tinyc {
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
         tvlm::Instruction * indexInstr = visitChild(ast->index);
         tvlm::Instruction * offsetInstr = append(new tvlm::LoadImm((int64_t) pointer->base()->size(), ast));
-        tvlm::Instruction * tmpInstr = append(new tvlm::BinOp(tvlm::BinOpType::MUL, tvlm::Instruction::Opcode::MUL,
-                                                              indexInstr, offsetInstr, ast));
-        tvlm::Instruction * addr = append(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, addrInstr, tmpInstr, ast));
+//        tvlm::Instruction * tmpInstr = append(new tvlm::BinOp(tvlm::BinOpType::MUL, tvlm::Instruction::Opcode::MUL,
+//                                                              indexInstr, offsetInstr, ast));
+        tvlm::Instruction * addr =
+        append(new tvlm::ElemAddrIndex( addrInstr,offsetInstr,  indexInstr , ast));
+//                append(new tvlm::BinOp(tvlm::BinOpType::ADD, tvlm::Instruction::Opcode::ADD, addrInstr, tmpInstr, ast));
 
         if(lvalue){
             lastIns_ = addr;
@@ -1009,7 +1018,7 @@ namespace tinyc {
         if(cFunType) {
             return b_.registerType(new ILType::Integer());//no need
         }
-        auto cPointerType = dynamic_cast<CType::Pointer*>(pType);
+        auto cPointerType = dynamic_cast<CType::Pointer*>(pType);//how do we know it that isnt an array TODO
         if(cPointerType) {
             return b_.registerType(new ILType::Pointer(getILType(cPointerType->base())));
         }

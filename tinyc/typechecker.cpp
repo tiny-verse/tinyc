@@ -120,7 +120,7 @@ namespace tinyc {
         return ast->setType(getOrCreatePointerType(visitChild(ast->base)));
     }
 
-    void TypeChecker::visit(ASTArrayType * ast) { 
+    void TypeChecker::visit(ASTArrayType * ast) {
         return ast->setType(getOrCreatePointerType(visitChild(ast->base)));
     }
 
