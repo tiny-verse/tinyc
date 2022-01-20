@@ -327,7 +327,8 @@ namespace tinyc {
 
 
     void TvlmFrontend::visit(ASTStructDecl *ast) {
-
+// maybe register type so it s clear which field is an array, so we know precise size
+// insufficient info from type analysis cuz array decl = pointer;
 //        if (ast->isDefinition) {
 //            // add types to IL?
 //            // il register new type
@@ -395,8 +396,6 @@ namespace tinyc {
                 auto &c = *it;
                 if (c.second.get() == ast->defaultCase) { // DEFAULT CASE
                     auto tmp_bCase = bCase;
-//                    auto tmp_bSuccessCmp = bSuccessCmp;
-//                    bSuccessCmp = b_.createBasicBlock("bb_succ_default");
 
                     tvlm::BasicBlock *bSuccessCmpNext;
                     auto nextCaseIt = it+1;
@@ -586,6 +585,11 @@ namespace tinyc {
 
             b_.enterBasicBlock(bbAfter);
             append(phi);
+            /*
+             * if(a  &&  b = 5){
+             *
+             * */
+
         } else if (ast->op == Symbol::Or) {
             // carry through memory -- unfriendly for optimization
             // but friendly for register allocation
@@ -799,42 +803,6 @@ namespace tinyc {
         }
     }
 
-#ifdef ELEMADDR
-/** USING ELEMADDR*/
-    void TvlmFrontend::visit(ASTIndex *ast) {
-        bool lvalue = lvalue_;
-        Type::Pointer * pointer = dynamic_cast<Type::Pointer* >(ast->base->type());
-        if(!pointer){
-            throw "ASTIndex called on non-pointer type";
-        }
-        tvlm::ElemAddr * addr;
-        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-        if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
-            addr =  new tvlm::ElemAddr(addrInstr, ast);
-//            append(addr);
-        }
-        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
-        if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){
-            append(addr);
-        }else{
-            lastIns_ = (addr);
-        }
-
-//        tvlm::ElemAddr * addr = new tvlm::ElemAddr(visitChild(ast->base, true), ast);
-//        addr->addIndex(visitChild(ast->index), pointer->base()->size() );
-//        append (addr);
-        if(lvalue){
-            lastIns_ = addr;
-        }else{
-            if(ast->base->type() == frontend_.getTypeDouble()){
-                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Double, ast));
-            }else{
-                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Integer, ast));
-            }
-        }
-    }
-#else
-    /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTIndex *ast) {
         bool lvalue = lvalue_;
         Type::Pointer * pointer = dynamic_cast<Type::Pointer* >(ast->base->type());
@@ -861,29 +829,7 @@ namespace tinyc {
             }
         }
     }
-#endif
-#ifdef ELEMADDR
-    /** WITH ELEMADDR*/
-    void TvlmFrontend::visit(ASTMember *ast) {
-        bool lvalue = lvalue_;
-        Type::Struct *type = dynamic_cast<Type::Struct *>(ast->base->type());
 
-         tvlm::Instruction * res;
-        //resolve access to member
-        tvlm::ElemAddr * addr;
-        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-        if(!(addr = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
-            addr =  new tvlm::ElemAddr(addrInstr, ast);
-//            append(addr);
-        }
-        res = lastIns_ =
-        resolveAccessToMember(b_, type, addr, ast->member, lvalue, ast, frontend_);
-        if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){
-            append(addr);
-        }
-    }
-#else
-    /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTMember *ast) {
         bool lvalue = lvalue_;
         Type::Struct *type = dynamic_cast<Type::Struct *>(ast->base->type());
@@ -893,35 +839,7 @@ namespace tinyc {
         lastIns_ = resolveAccessToMember(dynamic_cast<ILType::Struct *>(getILType(type)),
                                          addrInstr, ast->member, lvalue, ast);
     }
-#endif
-#ifdef ELEMADDR
-    /**WITH ELEMADDR*/
-    void TvlmFrontend::visit(ASTMemberPtr *ast) {
-        bool lvalue = lvalue_;
-        Type *baseType = ast->base->type();
 
-        Type::Pointer *ptype = dynamic_cast<Type::Pointer *>(baseType);
-        Type::Struct *type = dynamic_cast<Type::Struct *>(ptype->base());
-
-        tvlm::Instruction * res;
-        //resolve address from Pointer
-        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, true),tvlm::ResultType::Integer,ast));
-
-        //resolve access to member
-        tvlm::ElemAddr * elem;
-        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-        if(!(elem = dynamic_cast<tvlm::ElemAddr *>(addrInstr))){
-            elem =  new tvlm::ElemAddr(addrInstr, ast);
-//            append(elem);
-        }
-        res = lastIns_ =
-        resolveAccessToMember(b_, type, elem, ast->member, lvalue, ast, frontend_);
-        if(!dynamic_cast<tvlm::ElemAddr *>(addrInstr)){
-            append(elem);
-        }
-    }
-#else
-    /** WITHOUT ELEMADDR*/
     void TvlmFrontend::visit(ASTMemberPtr *ast) {
         bool lvalue = lvalue_;
         Type *baseType = ast->base->type();
@@ -936,12 +854,11 @@ namespace tinyc {
         //resolve access to member
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
 
-//        lastIns_ = resolveAccessToMemberWITHOUTELEMADDR(b_, type, addrInstr, ast->member, lvalue, ast, frontend_);
         lastIns_ = resolveAccessToMember(
                 dynamic_cast<ILType::Struct *>(getILType(type)),
                 addrInstr, ast->member, lvalue, ast);
     }
-#endif
+
 
     void TvlmFrontend::visit(ASTCall *ast) {
         std::vector<tvlm::Instruction *> argValues;
