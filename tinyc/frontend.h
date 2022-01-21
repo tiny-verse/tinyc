@@ -9,7 +9,7 @@
 #if (defined OPTIMIZER_tvlm)
 #include "tvlm/tvlm.h"
 #include "tvlm_frontend.h"
-#include "tvlm/il_builder.h"
+#include "tvlm/tvlm/il/il_builder.h"
 #include "typechecker.h"
 
 #endif
