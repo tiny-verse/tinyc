@@ -133,7 +133,7 @@ namespace tinyc {
             tvlm::Instruction *addr;
             if(arrayType){
                 auto ptrType = dynamic_cast<CType::Pointer*>(ast->type->type());
-                auto arrSize =  visitChild(arrayType->base);
+                auto arrSize =  visitChild(arrayType->size);
                 auto arr = b_.registerType(new ILType::Array(getILType(ptrType->base()), arrSize));
                 addr = append(new tvlm::AllocG{arr,arrSize, ast});
             }else {
@@ -154,7 +154,7 @@ namespace tinyc {
             ILType*  ilType = getILType(ast->type->type());
             if(arrayType){
                 auto ptrType = dynamic_cast<CType::Pointer*>(ast->type->type());
-                auto arrSize =  visitChild(arrayType->base);
+                auto arrSize =  visitChild(arrayType->size);
                 auto arr = b_.registerType(new ILType::Array(getILType(ptrType->base()), arrSize));
                 addr = append(new tvlm::AllocL{arr,arrSize, ast});
 
