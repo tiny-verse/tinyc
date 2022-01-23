@@ -33,12 +33,7 @@ namespace tinyc {
             lastIns_ = b_.getVariableAddress(ast->name);
         } else {
             tvlm::Instruction *addr = b_.getVariableAddress(ast->name);
-            if (/*is double*/ ast->type() == frontend_.getTypeDouble()) {
-                append(new tvlm::Load{addr, tvlm::ResultType::Double, ast});
-            } else {
-                append(new tvlm::Load{addr, tvlm::ResultType::Integer, ast});
-            }
-
+            append(new tvlm::Load{addr, getILType(ast->type()), ast});
 
         }
     }
@@ -98,8 +93,8 @@ namespace tinyc {
         tvlm::Instruction * addr = append(new tvlm::ElemAddrOffset(loadAddr, offset, ast));
 
         if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
-            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType() );
-
+//            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType() );
+            auto resType  = strct->getFieldType(member);
             return append(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
         }
         return addr;
@@ -192,8 +187,11 @@ namespace tinyc {
         }
         b_.addGlobalVariable(f->name(), append(new tvlm::LoadImm{(int64_t) 0, ast}));
         b_.enterFunction(f);
+        std::vector<tvlm::Instruction *> arguments;
         for (size_t i = 0, e = ast->args.size(); i != e; ++i) {
-            tvlm::Instruction *arg = append(new tvlm::ArgAddr{i, ast->args[i].first.get()});
+            tvlm::Instruction * arg = append(new tvlm::ArgAddr{i,arguments, getILType(ast->args[i].first.get()->type()), ast->args[i].first.get()});
+
+            arguments.push_back(arg);
             b_.addVariable(ast->args[i].second->name.name(), arg);
         }
         visitChild(ast->body);
@@ -663,13 +661,10 @@ namespace tinyc {
 
         } else {
             tvlm::Instruction *addr = visitChild(ast->target);
-            if (ast->type() == frontend_.getTypeDouble()) {
-                append(new tvlm::Load{addr, tvlm::ResultType::Double, ast});
-            } else if (frontend_.isPointer(ast->type()))  {
+            if (frontend_.isPointer(ast->type()))  {
                 lastIns_ = addr;
             } else {
-
-                append(new tvlm::Load{addr, tvlm::ResultType::Integer, ast});
+                append(new tvlm::Load{addr, getILType(ast->type()), ast});
             }
         }
     }
@@ -690,11 +685,7 @@ namespace tinyc {
         if(lvalue){
             lastIns_ = addr;
         }else{
-            if(ast->base->type() == frontend_.getTypeDouble()){
-                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Double, ast));
-            }else{
-                lastIns_ = append(new tvlm::Load(addr, tvlm::ResultType::Integer, ast));
-            }
+            lastIns_ = append(new tvlm::Load(addr, getILType(ast->base->type()), ast));
         }
     }
 
@@ -716,14 +707,12 @@ namespace tinyc {
 
         tvlm::Instruction * res;
         //resolve address from Pointer
-        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, true),tvlm::ResultType::Integer,ast));
+        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, false), getILType(type),ast));
 
         //resolve access to member
-        tvlm::Instruction * addrInstr = visitChild(ast->base, true);
-
         lastIns_ = resolveAccessToMember(
                 dynamic_cast<ILType::Struct *>(getILType(type)),
-                addrInstr, ast->member, lvalue, ast);
+                loadAddr, ast->member, lvalue, ast);
     }
 
 

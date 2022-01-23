@@ -49,7 +49,7 @@ namespace tinyc {
 #elif (defined OPTIMIZER_tvlm)
         /** The Tiny Virtual Low-level Machine Optimizer translator.
          */
-        using IL = tvlm::Program;
+        using IL = tvlm::ILBuilder;
         IL compileToIl(AST && ast) {
             tinyc::AST * rootNode = dynamic_cast<tinyc::AST*>(ast.get());
             // typecheck the ast and store type declarations

@@ -18,7 +18,7 @@ namespace tinyc {
     public:
         TvlmFrontend(Frontend &frontend) : frontend_{frontend} , b_(){}
 
-        static tvlm::Program translate(AST *ast, Frontend &frontend) {
+        static tvlm::ILBuilder translate(AST *ast, Frontend &frontend) {
             TvlmFrontend b(frontend);
             b.visit(ast);
             std::stringstream ss;
@@ -29,7 +29,7 @@ namespace tinyc {
 
             std::cerr << tiny::color::lightBlue << "IL:\n" << ss.str() << std::endl;
 
-            return std::move(b.b_.finish());
+            return std::move(b.b_);
         }
 
         void visit(AST *ast) override;
