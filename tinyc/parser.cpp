@@ -106,6 +106,18 @@ namespace tinyc {
             return CONTINUE_STMT();
         else if (top() == Symbol::KwReturn)
             return RETURN_STMT();
+        else if (top() == symbol::KwScan) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTRead{op}};
+        } else if (top() == symbol::KwPrint) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            std::unique_ptr<AST> expr(EXPR());
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTWrite{op, std::move(expr)}};
+        }
         else
             // TODO this would produce not especially nice error as we are happy with statements too
             return EXPR_STMT();
@@ -595,18 +607,6 @@ namespace tinyc {
             std::unique_ptr<AST> expr(EXPR());
             pop(Symbol::ParClose);
             return std::unique_ptr<AST>{new ASTCast{op, std::move(expr), std::move(type)}};
-        }
-        else if (top() == symbol::KwScan) {
-            Token op =  pop();
-            pop(Symbol::ParOpen);
-            pop(Symbol::ParClose);
-            return std::unique_ptr<AST>{new ASTRead{op}};
-        } else if (top() == symbol::KwPrint) {
-            Token op =  pop();
-            pop(Symbol::ParOpen);
-            std::unique_ptr<AST> expr(EXPR());
-            pop(Symbol::ParClose);
-            return std::unique_ptr<AST>{new ASTWrite{op, std::move(expr)}};
         }
         else if (top() == Token::Kind::Identifier) {
             return IDENT();
