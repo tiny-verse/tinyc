@@ -34,6 +34,8 @@ namespace tinyc {
             return true;
         }
 
+
+        virtual int size()const = 0;
     private:
 
         virtual void toStream(std::ostream & s) const = 0;
@@ -56,7 +58,9 @@ namespace tinyc {
         Type * base() const {
             return base_;
         }
-
+        int size() const override{
+            return base_->size();
+        }
     private:
 
         void toStream(std::ostream & s) const override {
@@ -81,6 +85,18 @@ namespace tinyc {
         POD(Symbol name):
             name_{name} {
         }
+        int size() const override{
+            if(name_ == Symbol::KwInt){
+                return 4;
+            }else if (name_ == Symbol::KwDouble){
+                return 8;
+            } else if (name_ == Symbol::KwChar){
+                return 1;
+            }
+
+            std::cerr << "unknown type " << name_.name() << ": counting with size 4" <<std::endl;
+            return 4;
+        }
 
     private:
 
@@ -102,6 +118,9 @@ namespace tinyc {
 
         Type * base() const {
             return base_;
+        }
+        int size() const override{
+            return 4;
         }
 
     private:
@@ -156,6 +175,17 @@ namespace tinyc {
             return nullptr;
         }
 
+
+        int size()const{
+            int size = 0;
+            for(auto & i : fields_){
+                size += i.second->size();
+            }
+            return size ? size : 4; //every struct has to have a memory footprint
+        }
+       const std::vector<std::pair<Symbol, Type *>> & fields()const{
+            return fields_;
+        }
     private:
 
         friend class TypeChecker;
@@ -194,6 +224,10 @@ namespace tinyc {
         Type * argType(size_t i) const {
             return args_[i];
         }
+        int size()const{
+            std::cerr << "calling size at function type" << std::endl;
+            return 4;
+        }
 
     private:
 
@@ -215,7 +249,10 @@ namespace tinyc {
         Type * returnType_;
 
         std::vector<Type *> args_;
-    }; // tinyc::Type::Fun
+    };
+
+
+    // tinyc::Type::Fun
 
 
 } // namespace tinyc

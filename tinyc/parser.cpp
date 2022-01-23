@@ -106,6 +106,18 @@ namespace tinyc {
             return CONTINUE_STMT();
         else if (top() == Symbol::KwReturn)
             return RETURN_STMT();
+        else if (top() == symbol::KwScan) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTRead{op}};
+        } else if (top() == symbol::KwPrint) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            std::unique_ptr<AST> expr(EXPR());
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTWrite{op, std::move(expr)}};
+        }
         else
             // TODO this would produce not especially nice error as we are happy with statements too
             return EXPR_STMT();
@@ -144,18 +156,25 @@ namespace tinyc {
         pop(Symbol::CurlyOpen);
         while (!condPop(Symbol::CurlyClose)) {
             if (top() == Symbol::KwDefault) {
-                if (result->defaultCase.get() != nullptr)
+                if (result->defaultCase != nullptr)
                     throw ParserError("Default case already provided", top().location(), false);
                 pop();
                 pop(Symbol::Colon);
-                result->defaultCase = CASE_BODY();
+                auto tmp = CASE_BODY();
+                result->defaultCase = tmp.get();
+                result->cases.emplace_back(0, std::move(tmp));
             } else if (condPop(Symbol::KwCase)) {
                 Token const & t = top();
                 int value = pop(Token::Kind::Integer).valueInt();
-                if (result->cases.find(value) != result->cases.end())
+                auto it = result->cases.begin();
+                while(it != result->cases.end() && it->first != value ){
+                    it++;
+                }
+//                if (result->cases.find(value) != result->cases.end())
+                if(it != result->cases.end())
                     throw ParserError(STR("Case " << value << " already provided"), t.location(), false);
                 pop(Symbol::Colon);
-                result->cases.insert(std::make_pair(value, CASE_BODY()));
+                result->cases.emplace_back(value, CASE_BODY());
             } else {
                 throw ParserError(STR("Expected case or default keyword but " << top() << " found"), top().location(), eof());
             }
@@ -301,6 +320,12 @@ namespace tinyc {
             while (! condPop(Symbol::CurlyClose)) {
                 std::unique_ptr<ASTType> type{TYPE()};
                 decl->fields.push_back(std::make_pair(IDENT(), std::move(type)));
+                if (condPop(Symbol::SquareOpen)) {
+                    std::unique_ptr<AST> index{E9()};
+                    pop(Symbol::SquareClose);
+                    // now we have to update the type
+                    decl->fields.back().second.reset(new ASTArrayType{start, std::move(decl->fields.back().second), std::move(index) });
+                }
                 pop(Symbol::Semicolon);
             }
             decl->isDefinition = true;
@@ -571,7 +596,7 @@ namespace tinyc {
             return std::unique_ptr<AST>{new ASTDouble{pop()}};
         } else if (top() == Token::Kind::StringSingleQuoted) {
             return std::unique_ptr<AST>{new ASTChar{pop()}};
-        } else if (top() == Token::Kind::StringSingleQuoted) {
+        } else if (top() == Token::Kind::StringDoubleQuoted) {
             return std::unique_ptr<AST>{new ASTString{pop()}};
         } else if (top() == Symbol::KwCast) {
             Token op = pop();
@@ -582,7 +607,8 @@ namespace tinyc {
             std::unique_ptr<AST> expr(EXPR());
             pop(Symbol::ParClose);
             return std::unique_ptr<AST>{new ASTCast{op, std::move(expr), std::move(type)}};
-        } else if (top() == Token::Kind::Identifier) {
+        }
+        else if (top() == Token::Kind::Identifier) {
             return IDENT();
         } else {
             throw ParserError(STR("Expected literal, (expr) or cast, but " << top() << " found"), top().location(), eof());
@@ -595,5 +621,10 @@ namespace tinyc {
         return std::unique_ptr<ASTIdentifier>{new ASTIdentifier{pop()}};
     }
 
+    bool symbol::isKeyword(const Symbol &s) {
+        return s == KwPrint
+               || s == KwScan
+                ;
+    }
 }
 

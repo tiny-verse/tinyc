@@ -108,6 +108,8 @@ namespace tinyc {
         void visit(ASTMemberPtr * ast) override;
         void visit(ASTCall * ast) override;
         void visit(ASTCast * ast) override;
+        void visit(ASTRead * ast) override;
+        void visit(ASTWrite * ast) override;
 
     protected:
 

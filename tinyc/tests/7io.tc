@@ -1,0 +1,9 @@
+
+int main(){                         // Function("main", Integer)
+
+    int a = 4;
+    a = cast<int>(scan());
+    print(cast<char>(a));
+    return a;
+    //! 6
+}

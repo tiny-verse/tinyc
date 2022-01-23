@@ -13,6 +13,11 @@ namespace tinyc {
 
     class Frontend;
 
+    namespace symbol{
+        static Symbol KwScan{"scan"};
+        static Symbol KwPrint{"print"};
+        bool isKeyword(Symbol const & s);
+    }
     class Parser : public ParserBase {
     public:
         static std::unique_ptr<ASTBase> ParseFile(std::string const & filename, Frontend & frontend) {
@@ -60,7 +65,9 @@ namespace tinyc {
                 || t == Symbol::KwSwitch
                 || t == Symbol::KwTypedef
                 || t == Symbol::KwVoid
-                || t == Symbol::KwWhile)
+                || t == Symbol::KwWhile
+                || symbol::isKeyword(t.valueSymbol())
+                )
                  return false;
             return true;
         }

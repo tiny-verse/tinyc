@@ -86,7 +86,7 @@ namespace tinyc {
     }
 
     void TypeChecker::visit(AST * ast) { 
-
+        visitChild(ast);
     }
 
     void TypeChecker::visit(ASTInteger * ast) { 
@@ -120,7 +120,7 @@ namespace tinyc {
         return ast->setType(getOrCreatePointerType(visitChild(ast->base)));
     }
 
-    void TypeChecker::visit(ASTArrayType * ast) { 
+    void TypeChecker::visit(ASTArrayType * ast) {
         return ast->setType(getOrCreatePointerType(visitChild(ast->base)));
     }
 
@@ -473,6 +473,20 @@ namespace tinyc {
         } else if (isPOD(castType) && isPOD(valueType))
             t = castType;
         return ast->setType(t);
+    }
+
+    void TypeChecker::visit(ASTRead * ast) {
+        return ast->setType(frontend_.getTypeChar());
+    }
+
+
+    void TypeChecker::visit(ASTWrite * ast) {
+        Type * valueType = visitChild(ast->value);
+        Type * charType = frontend_.getTypeChar();
+        if (charType == valueType)
+            return ast->setType(frontend_.getTypeVoid());
+        else
+            return ast->setType(nullptr); // error
     }
 
 } // namespace tinyc
