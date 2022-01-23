@@ -23,7 +23,7 @@ namespace tinyc {
     void TvlmFrontend::visit(ASTChar *ast) {
         append(new tvlm::LoadImm{static_cast<int64_t>(ast->value), ast});
     }
-
+  
     void TvlmFrontend::visit(ASTString *ast) {
         lastIns_ = b_.getStringLiteral(ast->value, ast);
     }
@@ -798,7 +798,7 @@ namespace tinyc {
 
         throw "cannot resolve Type";
         return nullptr;
-    }
+    } main
 
 } // namespace tinyc
 
