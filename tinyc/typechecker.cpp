@@ -246,8 +246,9 @@ namespace tinyc {
     void TypeChecker::visit(ASTSwitch * ast) { 
         if (! convertsToBool(visitChild(ast->cond)))
             throw ParserError{STR("Condition must convert to bool, but " << ast->cond->type()->toString() << " found"), ast->cond->location()};
-        if (ast->defaultCase != nullptr)
+        if (ast->defaultCase != nullptr){
             visitChild(ast->defaultCase);
+        }
         for (auto & i : ast->cases)
             visitChild(i.second);
         return ast->setType(getType(Symbol::KwVoid));

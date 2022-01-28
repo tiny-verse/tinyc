@@ -480,7 +480,7 @@ namespace tinyc {
         std::vector<std::pair<int, std::unique_ptr<AST>>> cases;
 
         ASTSwitch(Token const & t):
-            AST{t} {
+            AST{t}, defaultCase(nullptr){
         }
 
     protected:

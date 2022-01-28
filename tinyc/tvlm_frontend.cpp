@@ -155,8 +155,13 @@ namespace tinyc {
             if(arrayType){
                 auto ptrType = dynamic_cast<CType::Pointer*>(ast->type->type());
                 auto arrSize =  visitChild(arrayType->size);
+//                auto arr = b_.registerType(new ILType::Array(getILType(ptrType->base()), arrSize));
+//                addr = append(new tvlm::AllocL{arr,arrSize, ast});
+//                auto arr = getILType(ptrType->base());
                 auto arr = b_.registerType(new ILType::Array(getILType(ptrType->base()), arrSize));
-                addr = append(new tvlm::AllocL{arr,arrSize, ast});
+                auto arrayAddr = append(new tvlm::AllocL{arr,arrSize, ast});
+                addr = append(new tvlm::AllocL{ilType, nullptr, ast});
+                append(new tvlm::Store{ arrayAddr, addr, ast});
 
             }else {
                 addr = append(new tvlm::AllocL{ilType ,nullptr, ast});
@@ -610,7 +615,7 @@ namespace tinyc {
 
         tvlm::Instruction *operand = visitChild(ast->arg, true);
         if (ast->op == Symbol::Sub) {
-            append(new tvlm::BinOp{tvlm::BinOpType::SUB, tvlm::Instruction::Opcode::SUB, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
+            append(new tvlm::UnOp{tvlm::UnOpType::UNSUB, tvlm::Instruction::Opcode::UNSUB, operand, ast});
         } else if (ast->op == Symbol::Not ) {
             append(new tvlm::BinOp{tvlm::BinOpType::EQ, tvlm::Instruction::Opcode::EQ, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
         }else if (ast->op == Symbol::Neg){
@@ -679,7 +684,7 @@ namespace tinyc {
 
         tvlm::Instruction * addrInstr = visitChild(ast->base, true);
         tvlm::Instruction * indexInstr = visitChild(ast->index);
-        tvlm::Instruction * offsetInstr = append(new tvlm::LoadImm((int64_t) pointer->base()->size(), ast));
+        tvlm::Instruction * offsetInstr = append(new tvlm::LoadImm((int64_t) getILType(pointer->base())->size(), ast));
         tvlm::Instruction * addr =
         append(new tvlm::ElemAddrIndex( addrInstr,offsetInstr,  indexInstr , ast));
 
