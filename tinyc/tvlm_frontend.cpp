@@ -113,7 +113,7 @@ namespace tinyc {
         } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
             CType::Struct * strct = dynamic_cast<CType::Struct * >(type);
                ILType::Struct * tvlmStruct = dynamic_cast<ILType::Struct *>(getILType(strct));
-             return new tvlm::StructAssign(srcVal, dstAddr, tvlmStruct, ast);
+             return append(new tvlm::StructAssign(srcVal, dstAddr, tvlmStruct, ast));
 
             return srcVal;
 
@@ -178,6 +178,7 @@ namespace tinyc {
     void TvlmFrontend::visit(ASTFunDecl *ast) {
         tvlm::Function *f = new tvlm::Function{ast};
         f->setName(ast->name.name());
+        f->setType(getILType(ast->typeDecl->type()));
         if( frontend_.getTypeDouble() == ast->typeDecl->type() ){
             f->setResultType(tvlm::ResultType::Double);
         }else if (frontend_.getTypeVoid() == ast->typeDecl->type() ){
@@ -419,8 +420,8 @@ namespace tinyc {
     }
 
     void TvlmFrontend::visit(ASTReturn *ast) {
-        tvlm::Instruction *resultValue = visitChild(ast->value, false);
-        append(new tvlm::Return{resultValue, ast});
+        tvlm::Instruction *resultValue = ast->value ? visitChild(ast->value, false) : nullptr;
+        append(new tvlm::Return{resultValue, ast->value ? getILType(ast->value->type()) : getILType(frontend_.getTypeVoid()), ast});
         // we have closed the basic block, so a new one has to be created
         b_.enterBasicBlock(b_.createBasicBlock());
         lastIns_ = nullptr;
@@ -609,7 +610,7 @@ namespace tinyc {
 
         tvlm::Instruction *operand = visitChild(ast->arg, true);
         if (ast->op == Symbol::Sub) {
-            append(new tvlm::BinOp{tvlm::BinOpType::SUB, tvlm::Instruction::Opcode::UNSUB, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
+            append(new tvlm::BinOp{tvlm::BinOpType::SUB, tvlm::Instruction::Opcode::SUB, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
         } else if (ast->op == Symbol::Not ) {
             append(new tvlm::BinOp{tvlm::BinOpType::EQ, tvlm::Instruction::Opcode::EQ, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
         }else if (ast->op == Symbol::Neg){
@@ -717,9 +718,9 @@ namespace tinyc {
 
 
     void TvlmFrontend::visit(ASTCall *ast) {
-        std::vector<tvlm::Instruction *> argValues;
+        std::vector<std::pair< tvlm::Instruction *, tvlm::Type*>> argValues;
         for (auto &i: ast->args) {
-            argValues.push_back(visitChild(i));
+            argValues.push_back(std::make_pair(visitChild(i), getILType(i->type()) ));
         }
         if (auto i = dynamic_cast<ASTIdentifier *>(ast->function.get())) {
 
@@ -728,7 +729,7 @@ namespace tinyc {
                 append(new tvlm::CallStatic{f, std::move(argValues), ast});
             }else{
                 tvlm::Instruction *f = visitChild(ast->function);
-                append(new tvlm::Call{f, std::move(argValues), ast});
+                append(new tvlm::Call{f, getILType(ast->function->type()), std::move(argValues), ast});
             }
         } else {
 
@@ -760,12 +761,12 @@ namespace tinyc {
         append(new tvlm::PutChar(val, ast));
     }
 
-    ILType *TvlmFrontend::getILType(Type *pType) {
-        auto cAliasType = dynamic_cast<CType::Alias*>(pType);
+    ILType *TvlmFrontend::getILType(const Type *pType) {
+        auto cAliasType = dynamic_cast<const CType::Alias*>(pType);
         if(cAliasType) {
             return getILType(cAliasType->base());
         }
-        auto cPODType = dynamic_cast<CType::POD*>(pType);
+        auto cPODType = dynamic_cast<const CType::POD*>(pType);
         if(cPODType && frontend_.getTypeInt() == pType) {
             return b_.registerType(new ILType::Integer());
 
@@ -779,7 +780,7 @@ namespace tinyc {
             return b_.registerType(new ILType::Void());
 
         }
-        auto cStructType = dynamic_cast<CType::Struct*>(pType);
+        auto cStructType = dynamic_cast<const CType::Struct*>(pType);
         if(cStructType) {
             std::vector<std::pair<Symbol, ILType *>> fields;
             for(auto & f : cStructType->fields()) {
@@ -787,11 +788,11 @@ namespace tinyc {
             }
             return b_.registerType(new ILType::Struct(cStructType->ast()->name, fields));
         }
-        auto cFunType = dynamic_cast<CType::Fun*>(pType);
+        auto cFunType = dynamic_cast<const CType::Fun*>(pType);
         if(cFunType) {
             return b_.registerType(new ILType::Integer());//no need
         }
-        auto cPointerType = dynamic_cast<CType::Pointer*>(pType);
+        auto cPointerType = dynamic_cast<const CType::Pointer*>(pType);
         if(cPointerType) {
             return b_.registerType(new ILType::Pointer(getILType(cPointerType->base())));
         }

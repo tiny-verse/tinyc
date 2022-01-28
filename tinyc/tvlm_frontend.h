@@ -134,7 +134,7 @@ namespace tinyc {
         tvlm::Instruction *lastIns_;
         bool lvalue_ = false;
 
-        ILType *getILType(Type *pType);
+        ILType *getILType(const Type *pType);
 
         tvlm::Instruction *
         resolveAccessToMember(ILType::Struct *strct, tvlm::Instruction *loadAddr,

@@ -106,18 +106,6 @@ namespace tinyc {
             return CONTINUE_STMT();
         else if (top() == Symbol::KwReturn)
             return RETURN_STMT();
-        else if (top() == symbol::KwScan) {
-            Token op =  pop();
-            pop(Symbol::ParOpen);
-            pop(Symbol::ParClose);
-            return std::unique_ptr<AST>{new ASTRead{op}};
-        } else if (top() == symbol::KwPrint) {
-            Token op =  pop();
-            pop(Symbol::ParOpen);
-            std::unique_ptr<AST> expr(EXPR());
-            pop(Symbol::ParClose);
-            return std::unique_ptr<AST>{new ASTWrite{op, std::move(expr)}};
-        }
         else
             // TODO this would produce not especially nice error as we are happy with statements too
             return EXPR_STMT();
@@ -320,12 +308,6 @@ namespace tinyc {
             while (! condPop(Symbol::CurlyClose)) {
                 std::unique_ptr<ASTType> type{TYPE()};
                 decl->fields.push_back(std::make_pair(IDENT(), std::move(type)));
-                if (condPop(Symbol::SquareOpen)) {
-                    std::unique_ptr<AST> index{E9()};
-                    pop(Symbol::SquareClose);
-                    // now we have to update the type
-                    decl->fields.back().second.reset(new ASTArrayType{start, std::move(decl->fields.back().second), std::move(index) });
-                }
                 pop(Symbol::Semicolon);
             }
             decl->isDefinition = true;
@@ -607,6 +589,18 @@ namespace tinyc {
             std::unique_ptr<AST> expr(EXPR());
             pop(Symbol::ParClose);
             return std::unique_ptr<AST>{new ASTCast{op, std::move(expr), std::move(type)}};
+        }
+        else if (top() == symbol::KwScan) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTRead{op}};
+        } else if (top() == symbol::KwPrint) {
+            Token op =  pop();
+            pop(Symbol::ParOpen);
+            std::unique_ptr<AST> expr(EXPR());
+            pop(Symbol::ParClose);
+            return std::unique_ptr<AST>{new ASTWrite{op, std::move(expr)}};
         }
         else if (top() == Token::Kind::Identifier) {
             return IDENT();
