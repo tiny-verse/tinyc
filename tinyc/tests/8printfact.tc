@@ -51,10 +51,10 @@ void prt(int a){
  }
 
                                     // AST                                           -> IL
-int fact(int n) {                   // Function("fact", Integer)
+double fact(double n) {                   // Function("fact", Integer)
                                 //                                                   -> n       = ArgAddr(0)
     //print(cast<char>(n));
-    if(n == 0) {                    // ASTIf // ASTBinaryOp
+    if(n == 0.0) {                    // ASTIf // ASTBinaryOp
                                                 // ASTIdentifier // ASTInteger       -> t1 = Load (n : addr)
                                             //                                       -> t2 = LoadImm(0)
                                             //                                       -> t3 = BinOp(==, t1, t2)
@@ -62,7 +62,7 @@ int fact(int n) {                   // Function("fact", Integer)
                                             //                                       -> jump->addTerget(bbAfter)
                                             //                                       -> jump->addTerget(bbTrue)
                                             //                      BasicBlock * bbTrue:
-        return 1;                   // ASTReturn // ASTInteger                      -> t4 = LoadIm(1)
+        return 1.0;                   // ASTReturn // ASTInteger                      -> t4 = LoadIm(1)
                                                  //                                 -> return t4;
     }
                                             //                      BasicBlock * bbAfter:
@@ -74,7 +74,7 @@ int fact(int n) {                   // Function("fact", Integer)
      fact(                          // ASTCall
             n                       // ASTIdentifier                                -> t6 = Load(r0)
             -                       // ASTBinaryOp
-            1);                     // ASTInteger                                   -> t7 = LoadImm(1)
+            1.0);                     // ASTInteger                                   -> t7 = LoadImm(1)
                                     //                                              -> t8 = BinOp(-, t6, t7)
                                     //                                              -> t9 = CallStatic ( fact,  [t8] )
                                     //                                              -> t10= BinOp(*, t5, t9)
@@ -84,9 +84,11 @@ int fact(int n) {                   // Function("fact", Integer)
 
 int main(){                         // Function("main", Integer)
 
-    int a =
-    fact(5);                       // ASTReturn       // ASTCall
+    int a = cast<int>(
+    fact(5.0)
+    );
     printnum(a);
+
     //prt(a);
     return a;
                                                             // ASTInteger            ->  t12 = LoadImm(1)
