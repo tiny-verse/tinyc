@@ -193,11 +193,11 @@ namespace tinyc {
         }
         b_.addGlobalVariable(f->name(), append(new tvlm::LoadImm{(int64_t) 0, ast}));
         b_.enterFunction(f);
-        std::vector<tvlm::Instruction *> arguments;
+//        std::vector<tvlm::Instruction *> arguments;
         for (size_t i = 0, e = ast->args.size(); i != e; ++i) {
-            tvlm::Instruction * arg = append(new tvlm::ArgAddr{i,arguments, getILType(ast->args[i].first.get()->type()), ast->args[i].first.get()});
+            tvlm::Instruction * arg = append(new tvlm::ArgAddr{i, getILType(ast->args[i].first.get()->type()), ast->args[i].first.get()});
 
-            arguments.push_back(arg);
+//            arguments.push_back(arg);
             b_.addVariable(ast->args[i].second->name.name(), arg);
         }
         visitChild(ast->body);
