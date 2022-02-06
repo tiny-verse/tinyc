@@ -804,7 +804,7 @@ namespace tinyc {
 
         throw "cannot resolve Type";
         return nullptr;
-    } main
+    }
 
 } // namespace tinyc
 
