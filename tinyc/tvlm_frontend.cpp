@@ -591,7 +591,8 @@ namespace tinyc {
                 }
             visitChild(ast->right);
             tvlm::Instruction *rhs = lastIns_;
-            append(new tvlm::BinOp(opcode, tvlm::Instruction::Opcode::BinOp, lhs, rhs, ast));
+//            append(new tvlm::BinOp(opcode, tvlm::Instruction::Opcode::BinOp, lhs, rhs, ast));
+            append(new tvlm::BinOp(opcode, opc, lhs, rhs, ast));
 
         }
     }
@@ -771,7 +772,7 @@ namespace tinyc {
         if(cAliasType) {
             return getILType(cAliasType->base());
         }
-        auto cPODType = dynamic_cast<const CType::POD*>(pType);
+        auto cPODType =  dynamic_cast<const CType::POD*>(pType);
         if(cPODType && frontend_.getTypeInt() == pType) {
             return b_.registerType(new ILType::Integer());
 
