@@ -228,9 +228,9 @@ namespace tinyc {
             tvlm::BasicBlock *bbFalse = b_.createBasicBlock();
             tvlm::BasicBlock *bbAfter = b_.createBasicBlock();
 
-            append(new tvlm::CondJump{condVal, ast});
-            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbFalse);
-            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbTrue);
+            append(new tvlm::CondJump{condVal, bbTrue, bbFalse, ast});
+//            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbFalse);
+//            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbTrue);
 
             b_.enterBasicBlock(bbTrue);
             visitChild(ast->trueCase);
@@ -246,9 +246,9 @@ namespace tinyc {
         } else {
             tvlm::BasicBlock *bbAfter = b_.createBasicBlock();
 
-            append(new tvlm::CondJump{condVal, ast});
-            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbAfter);
-            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbTrue);
+            append(new tvlm::CondJump{condVal, bbTrue, bbAfter, ast});
+//            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbAfter);
+//            dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bbTrue);
 
             b_.enterBasicBlock(bbTrue);
             visitChild(ast->trueCase);
@@ -318,11 +318,12 @@ namespace tinyc {
                         bSuccessCmpNext = bAfter;
                     }
                     tvlm::CondJump *condJump = new tvlm::CondJump{
-                            jmpVal,
-                            ast
+                            jmpVal
+                            ,bCase, bSuccessCmp
+                            ,ast
                     };
-                    condJump->addTarget(bSuccessCmp);
-                    condJump->addTarget(bCase);
+//                    condJump->addTarget(bSuccessCmp);
+//                    condJump->addTarget(bCase);
                     append(condJump);
                     b_.enterBasicBlock(bSuccessCmp);
                     visitChild(c.second);
@@ -345,9 +346,9 @@ namespace tinyc {
         b_.enterBasicBlock(bCond);
         tvlm::ILBuilder::Context oldContext = b_.enterContext(tvlm::ILBuilder::Context::Loop(bAfter, bCond));
         tvlm::Instruction *condVal = visitChild(ast->cond);
-        append(new tvlm::CondJump{condVal, ast});
-        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bAfter);
-        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bBody);
+        append(new tvlm::CondJump{condVal, bBody, bAfter, ast});
+//        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bAfter);
+//        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bBody);
         b_.enterBasicBlock(bBody);
         visitChild(ast->body);
         append(new tvlm::Jump{bCond, ast});
@@ -369,9 +370,9 @@ namespace tinyc {
         b_.add(new tvlm::Jump(bCond, ast));
         b_.enterBasicBlock(bCond);
         tvlm::Instruction *condVal = visitChild(ast->cond);
-        append(new tvlm::CondJump{condVal, ast});
-        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bAfter);
-        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bBody);
+        append(new tvlm::CondJump{condVal, bBody, bAfter, ast});
+//        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bAfter);
+//        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bBody);
 
         b_.leaveContext(oldContext);
         b_.enterBasicBlock(bAfter);
@@ -388,9 +389,9 @@ namespace tinyc {
         append(new tvlm::Jump{bCond, ast->init.get()});
         b_.enterBasicBlock(bCond);
         tvlm::Instruction *condVal = visitChild(ast->cond);
-        append(new tvlm::CondJump{condVal, ast->cond.get()});
-        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bAfter);
-        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bBody);
+        append(new tvlm::CondJump{condVal, bBody, bAfter, ast->cond.get()});
+//        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bAfter);
+//        dynamic_cast<tvlm::CondJump *>(lastIns_)->addTarget(bBody);
 
         tvlm::ILBuilder::Context oldContext = b_.enterContext(tvlm::ILBuilder::Context::Loop(bAfter, bInc));
         b_.enterBasicBlock(bBody);
@@ -443,15 +444,15 @@ namespace tinyc {
             tvlm::BasicBlock *bbTrue = b_.createBasicBlock();
             tvlm::BasicBlock *bbAfter = b_.createBasicBlock();
             tvlm::Phi *phi = new tvlm::Phi(tvlm::ResultType::Integer, ast);//phi node
-            tvlm::CondJump *tmp = new tvlm::CondJump{lhs, ast};
-            tmp->addTarget(bbFalse); //if L false --> bbFalse
-            tmp->addTarget(lhsTrue); //if L true --> lhsTrue
+            tvlm::CondJump *tmp = new tvlm::CondJump{lhs, lhsTrue, bbFalse, ast};
+//            tmp->addTarget(bbFalse); //if L false --> bbFalse
+//            tmp->addTarget(lhsTrue); //if L true --> lhsTrue
             append(tmp);
             b_.enterBasicBlock(lhsTrue);
             tvlm::Instruction *rhs = visitChild(ast->right);
-            tmp = new tvlm::CondJump{rhs, ast};
-            tmp->addTarget(bbFalse); //if R false --> bbFalse
-            tmp->addTarget(bbTrue);  //if R true --> bbTrue
+            tmp = new tvlm::CondJump{rhs, bbTrue, bbFalse, ast};
+//            tmp->addTarget(bbFalse); //if R false --> bbFalse
+//            tmp->addTarget(bbTrue);  //if R true --> bbTrue
             append(tmp);
 
             b_.enterBasicBlock(bbFalse); // results in 0
@@ -510,15 +511,15 @@ namespace tinyc {
             tvlm::BasicBlock *bbFalse = b_.createBasicBlock();
             tvlm::BasicBlock *bbAfter = b_.createBasicBlock();
             tvlm::Phi *phi = new tvlm::Phi(tvlm::ResultType::Integer, ast);//phi node
-            tvlm::CondJump *tmp = new tvlm::CondJump{lhs, ast};
-            tmp->addTarget(lhsFalse); //if L true --> lhsTrue
-            tmp->addTarget(bbTrue); //if L false --> bbTrue
+            tvlm::CondJump *tmp = new tvlm::CondJump{lhs, bbTrue, lhsFalse, ast};
+//            tmp->addTarget(lhsFalse); //if L true --> lhsTrue
+//            tmp->addTarget(bbTrue); //if L false --> bbTrue
             append(tmp);
             b_.enterBasicBlock(lhsFalse);
             tvlm::Instruction *rhs = visitChild(ast->right);
-            tmp = new tvlm::CondJump{rhs, ast};
-            tmp->addTarget(bbFalse); //if R false --> bbFalse
-            tmp->addTarget(bbTrue);  //if R true --> bbTrue
+            tmp = new tvlm::CondJump{rhs, bbTrue, bbFalse, ast};
+//            tmp->addTarget(bbFalse); //if R false --> bbFalse
+//            tmp->addTarget(bbTrue);  //if R true --> bbTrue
             append(tmp);
 
             b_.enterBasicBlock(bbFalse); // results in 0
@@ -805,6 +806,13 @@ namespace tinyc {
 
         throw "cannot resolve Type";
         return nullptr;
+    }
+
+    tvlm::Instruction *TvlmFrontend::append(tvlm::Instruction *ins)  {
+        b_.add(ins);
+        lastIns_ = ins;
+
+        return ins;
     }
 
 } // namespace tinyc

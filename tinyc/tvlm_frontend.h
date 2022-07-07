@@ -123,11 +123,7 @@ namespace tinyc {
                                               tvlm::Instruction *srcVal, AST const *ast);
 
 
-        tvlm::Instruction *append(tvlm::Instruction *ins) {
-            b_.add(ins);
-            lastIns_ = ins;
-            return ins;
-        }
+        tvlm::Instruction *append(tvlm::Instruction *ins);
 
         Frontend &frontend_;
         tvlm::ILBuilder b_;
