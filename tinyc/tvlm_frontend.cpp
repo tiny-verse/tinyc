@@ -301,7 +301,8 @@ namespace tinyc {
                     b_.enterBasicBlock(bCase);
 
                     tvlm::Instruction *caseVal = append(new tvlm::LoadImm((int64_t) c.first, c.second.get()));
-                    tvlm::Instruction *jmpVal = append(new tvlm::BinOp{tvlm::BinOpType::NEQ, tvlm::Instruction::Opcode::NEQ, condVal, caseVal, ast});
+                    tvlm::Instruction * cpy  = append(new tvlm::Copy{condVal, ast});
+                    tvlm::Instruction *jmpVal = append(new tvlm::BinOp{tvlm::BinOpType::NEQ, tvlm::Instruction::Opcode::NEQ, cpy, caseVal, ast});
 
                     tvlm::BasicBlock *bSuccessCmpNext = nullptr;
                     auto nextCaseIt = it+1;
@@ -751,12 +752,12 @@ namespace tinyc {
 
         if(ast->type->type() == ast->value->type()){ //casting T to T
             append(new tvlm::Copy(val, ast)); //to preserve SSA
+//            lastIns_ = val; //no cast necessary
         }else if (ast->type->type() == frontend_.getTypeDouble() && ast->value->type() != frontend_.getTypeDouble()) {
             append(new tvlm::Extend(val, ast)); // needs extension to float type
         } else if (ast->type->type() == frontend_.getTypeInt() && ast->value->type() == frontend_.getTypeDouble()) {
             append(new tvlm::Truncate(val, ast)); // needs truncation from float type
         }
-        lastIns_ = val; //no cast necessary
     }
 
     void TvlmFrontend::visit(ASTRead *ast) {
