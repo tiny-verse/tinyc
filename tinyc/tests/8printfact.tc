@@ -4,6 +4,17 @@ void prt(int a){
 }
  void printnum(int a ){
 
+     if(a < 0 ) {
+        print('<');
+        return;
+     }else if ( a == 0 ){
+        print('0');
+        return;
+     }else {
+        print('>');
+        print('\n');
+     }
+
      int dec =1;
      while(dec < a){
          dec = dec *10;
@@ -84,9 +95,17 @@ double fact(double n) {                   // Function("fact", Integer)
 
 int main(){                         // Function("main", Integer)
 
+    double b = 5.0;
     int a = cast<int>(
-    fact(5.0)
+     fact(5.0)
+    //b
     );
+    if(a == 5) {
+        print('1');
+    }else{
+        print('0');
+    }
+
     printnum(a);
 
     //prt(a);
