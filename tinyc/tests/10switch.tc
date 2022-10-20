@@ -3,6 +3,7 @@ int main(){                         // Function("main", Integer)
 
     int a = 0;
     int b = 0;
+    int n = 0;
 
     while(b < 5){
 
@@ -19,7 +20,9 @@ int main(){                         // Function("main", Integer)
                 break;
         }
         print(cast<char>(a));
-        print('\n');
+        n = cast<int>('\n');
+        print(cast<char>(n));
+        //print('\n');
         b++;
     }
 

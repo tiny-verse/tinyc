@@ -10,5 +10,5 @@ int main(){                         // Function("main", Integer)
                                                             // ASTInteger            ->  t12 = LoadImm(1)
                                                             //                       ->  t13 = CallStatic( fact, t12)
                                                             //                       ->  Return(t13 : retValue)
-    //! 6
+    //! 5
 }

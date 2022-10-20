@@ -1,0 +1,31 @@
+int prt(int a){
+    int k = 6;
+    int b = a - k;
+    return a - b;
+}
+
+
+int main(){                         // Function("main", Integer)
+
+    double b = 178.0;
+    // fact(5.0);
+    int a = cast<int>(
+    b
+    );
+    if(a == 178) {
+        print('1');
+    }else{
+        print('0');
+    }
+
+     if(a < 0 ) {
+        print('<');
+     }else if ( a == 0 ){
+        print('0');
+     }else {
+        print('>');
+        print('\n');
+     }
+      int h = prt(a);
+     return h + 15 + a;
+}
