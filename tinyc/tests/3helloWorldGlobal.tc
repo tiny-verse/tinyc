@@ -1,0 +1,16 @@
+                                    // AST                           -> IL
+
+char * str = "Hello world!";      // ASTVardecl   // ASTType     -> addr = AllocL(4 : size)
+int main(){                         // Function("main", Integer)
+                //globals <- String "Hello world!"  // ASTString     -> str  = AllocG(4 : size)
+
+    return cast<int>(str[0]);         // ASTReturn   // ASTIdentifier // ASTIndex
+                                                    //               -> Store(str, addr)
+                                                    // ASTPointer    -> str  = Load(addr, Integer)
+                                                                  // -> a1   = GetElem(t:base, 1:elemSize)
+                                                                  // -> v1   = LoadImm(0)
+                                                                  // -> a1.offset(v1);
+                                                                  // -> t1   = Load(a1, Integer)
+                                                                  // ->  Return(t1 : retValue)
+    //! 72 //~ascii for 'H'
+}
