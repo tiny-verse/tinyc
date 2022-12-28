@@ -5,7 +5,7 @@ int main(){                         // Function("main", Integer)
     int b = 0;
     int n = 0;
 
-    while(b < 5){
+    while(b < 4){
 
         switch(b){
             case 1:
