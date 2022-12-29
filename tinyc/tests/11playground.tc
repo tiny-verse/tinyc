@@ -1,75 +1,82 @@
-void prt(int a){
-    print(cast<char>(a));
-    return;
-}
-
- void printnum(int a ){
-
-
-     int dec =1;
-     while(dec < a){
-         dec = dec *10;
-     }
-     dec = dec /10;
-     int div = a /dec;
-     switch(div){
-              case 0:
-              print('0');
-              break;
-              case 1:
-              print('1');
-              break;
-              case 2:
-              print('2');
-              break;
-              case 3:
-              print('3');
-              break;
-              case 4:
-              print('4');
-              break;
-              case 5:
-              print('5');
-              break;
-              case 6:
-              print('6');
-              break;
-              case 7:
-              print('7');
-              break;
-              case 8:
-              print('8');
-              break;
-              case 9:
-              print('9');
-              break;
-              }
-
-     prt(dec);
-     return;
- }
+//void prt(int a){
+//    print(cast<char>(a));
+//    return;
+//}
+//
+// void printnum(int a ){
+//
+//
+//     int dec =1;
+//     while(dec < a){
+//         dec = dec *10;
+//     }
+//     dec = dec /10;
+//     int div = a /dec;
+//     switch(div){
+//              case 0:
+//              print('0');
+//              break;
+//              case 1:
+//              print('1');
+//              break;
+//              case 2:
+//              print('2');
+//              break;
+//              case 3:
+//              print('3');
+//              break;
+//              case 4:
+//              print('4');
+//              break;
+//              case 5:
+//              print('5');
+//              break;
+//              case 6:
+//              print('6');
+//              break;
+//              case 7:
+//              print('7');
+//              break;
+//              case 8:
+//              print('8');
+//              break;
+//              case 9:
+//              print('9');
+//              break;
+//              }
+//
+//     prt(dec);
+//     return;
+// }
 
 int main(){                         // Function("main", Integer)
 
-    double b = 178.0;
-    // fact(5.0);
-    int a = cast<int>(
-    b
-    );
-    if(a == 178) {
-        print('1');
-    }else{
-        print('0');
-    }
+    int arr[10];
 
-     if(a < 0 ) {
-        print('<');
-     }else if ( a == 0 ){
-        print('0');
-     }else {
-        print('>');
-        print('\n');
-     }
-      printnum(a);
-     return 1;
+//    double b = 178.0;
+    int b = 178;
+    // fact(5.0);
+//    arr[5] = b;
+//    arr[1] = b-15;
+    arr[4] = b+15;
+    arr[2] = b-arr[4];
+    int a = cast<int>(
+    arr[2]
+    );
+//    if(a == 178) {
+//        print('1');
+//    }else{
+//        print('0');
+//    }
+
+//     if(a < 0 ) {
+//        print('<');
+//     }else if ( a == 0 ){
+//        print('0');
+//     }else {
+//        print('>');
+//        print('\n');
+//     }
+//      printnum(a);
+     return a;
 }
