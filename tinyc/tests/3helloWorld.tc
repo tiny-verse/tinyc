@@ -5,8 +5,9 @@
 int main(){                         // Function("main", Integer)
     char * str = "Hello world!";      // ASTVardecl   // ASTType     -> addr = AllocL(4 : size)
                 //globals <- String "Hello world!"  // ASTString     -> str  = AllocG(4 : size)
+    print(str[1]);
 
-    return cast<int>(str[0]);         // ASTReturn   // ASTIdentifier // ASTIndex
+    return cast<int>(str[1]);         // ASTReturn   // ASTIdentifier // ASTIndex
                                                     //               -> Store(str, addr)
                                                     // ASTPointer    -> str  = Load(addr, Integer)
                                                                   // -> a1   = GetElem(t:base, 1:elemSize)

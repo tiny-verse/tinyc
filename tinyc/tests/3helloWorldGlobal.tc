@@ -4,7 +4,7 @@ char * str = "Hello world!";      // ASTVardecl   // ASTType     -> addr = Alloc
 int main(){                         // Function("main", Integer)
                 //globals <- String "Hello world!"  // ASTString     -> str  = AllocG(4 : size)
 
-    return cast<int>(str[0]);         // ASTReturn   // ASTIdentifier // ASTIndex
+    return cast<int>(str[3]);         // ASTReturn   // ASTIdentifier // ASTIndex
                                                     //               -> Store(str, addr)
                                                     // ASTPointer    -> str  = Load(addr, Integer)
                                                                   // -> a1   = GetElem(t:base, 1:elemSize)
