@@ -593,8 +593,22 @@ namespace tinyc {
                 }
             visitChild(ast->right);
             tvlm::Instruction *rhs = lastIns_;
+            tvlm::Instruction *finalRhs = nullptr;
+            tvlm::Instruction *finalLhs = nullptr;
+            if(lhs->resultType() == tvlm::ResultType::Integer){
+                finalLhs = append(new tvlm::Extend(lhs, ast));
+            }else{
+                finalLhs = lhs;
+            }
+
+
+            if(rhs->resultType() == tvlm::ResultType::Integer){
+                finalRhs = append(new tvlm::Extend(rhs, ast));
+            }else{
+                finalRhs = rhs;
+            }
 //            append(new tvlm::BinOp(opcode, tvlm::Instruction::Opcode::BinOp, lhs, rhs, ast));
-            append(new tvlm::BinOp(opcode, opc, lhs, rhs, ast));
+            append(new tvlm::BinOp(opcode, opc, finalLhs, finalRhs, ast));
 
         }
     }
@@ -694,7 +708,7 @@ namespace tinyc {
         if(lvalue){
             lastIns_ = addr;
         }else{
-            lastIns_ = append(new tvlm::Load(addr, getILType(ast->base->type()), ast));
+            lastIns_ = append(new tvlm::Load(addr, getILType(pointer->base()), ast));
         }
     }
 

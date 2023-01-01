@@ -1,7 +1,7 @@
 int prt(int a){
     int k = 6;
-    int b = a - k;
-    return a - b;
+    int b = a - k; //172
+    return a - b; //6
 }
 
 
@@ -27,5 +27,5 @@ int main(){                         // Function("main", Integer)
         print('\n');
      }
       int h = prt(a);
-     return h + 15 + a;
+     return h + 15 + a; //21+178
 }

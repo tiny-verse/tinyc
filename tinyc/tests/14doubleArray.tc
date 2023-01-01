@@ -1,0 +1,17 @@
+
+int main(){                         // Function("main", Integer)
+
+    double arr[10];
+
+    double b = 178.0;
+
+//    arr[5] = b;
+//    arr[1] = b-15;
+    arr[4] = b+15;
+    arr[2] = b-arr[4];
+    int a = cast<int>(
+    arr[2]
+    );
+
+     return a;
+}
