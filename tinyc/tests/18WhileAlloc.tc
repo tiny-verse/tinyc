@@ -1,0 +1,13 @@
+
+int main(){                         // Function("main", Integer)
+
+    int a = 0;
+    int c = 5;
+    while(a < 5){
+        int b = a * 5;
+        c = 135 - b;
+        a++;
+    }
+    return c;
+    //! 5
+}
