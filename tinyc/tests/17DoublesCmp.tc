@@ -1,0 +1,9 @@
+int main(){                         // Function("main", Integer)
+
+
+    double a = 17.8, double b = 554.7;
+    if(a > b){
+        return cast<int>(a);
+    }
+    return cast<int>(a-b);
+}

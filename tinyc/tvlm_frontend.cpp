@@ -595,17 +595,22 @@ namespace tinyc {
             tvlm::Instruction *rhs = lastIns_;
             tvlm::Instruction *finalRhs = nullptr;
             tvlm::Instruction *finalLhs = nullptr;
-            if(lhs->resultType() == tvlm::ResultType::Integer){
+            if(ast->type() == frontend_.getTypeDouble()){
+                if(lhs->resultType() == tvlm::ResultType::Integer){
+                    finalLhs = append(new tvlm::Extend(lhs, ast));
+                }else{
+                    finalLhs = lhs;
+                }
+
+
+                if(rhs->resultType() == tvlm::ResultType::Integer){
+                    finalRhs = append(new tvlm::Extend(rhs, ast));
+                }else{
+                    finalRhs = rhs;
+                }
+            }else{
                 finalLhs = lhs;
-            }else{
-                finalLhs = append(new tvlm::Extend(lhs, ast));
-            }
-
-
-            if(rhs->resultType() == tvlm::ResultType::Integer){
                 finalRhs = rhs;
-            }else{
-                finalRhs = append(new tvlm::Extend(rhs, ast));
             }
 //            append(new tvlm::BinOp(opcode, tvlm::Instruction::Opcode::BinOp, lhs, rhs, ast));
             append(new tvlm::BinOp(opcode, opc, finalLhs, finalRhs, ast));

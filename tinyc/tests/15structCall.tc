@@ -1,0 +1,30 @@
+struct Pair{
+    int a;
+    int b;
+};
+
+struct DoublePair{                 // ASTStructDecl                 ->
+    Pair c;
+    int a;
+};
+
+Pair getFirst( DoublePair p){
+    return p.c;
+}
+
+
+
+int main(){                         // Function("main", Integer)
+
+    DoublePair dp;
+    Pair pp;
+    pp.a = 15;
+    pp.b = 25;
+
+    dp.c = pp;
+    dp.a = 1353;
+
+    Pair ip;
+    ip = getFirst( dp);
+    return ip.b;
+}

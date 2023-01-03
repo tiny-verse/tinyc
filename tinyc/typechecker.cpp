@@ -184,8 +184,12 @@ namespace tinyc {
             throw ParserError{STR("Name " << ast->name.name() << " already used"), ast->location()};
         // typecheck the function body
         Type * actualReturn = visitChild(ast->body);
-        if (actualReturn != dynamic_cast<Type::Fun*>(t)->returnType())
+        if (actualReturn != dynamic_cast<Type::Fun*>(t)->returnType()){
+            if(!actualReturn){
+                throw ParserError{"Missing function return type: ", ast->location()};
+            }
             throw ParserError{STR("Invalid function return type: " << actualReturn->toString()), ast->location()};
+        }
         // leave the function context
         leaveContext();
         return ast->setType(t);
