@@ -689,11 +689,11 @@ namespace tinyc {
 
         } else {
             tvlm::Instruction *addr = visitChild(ast->target);
-            if (frontend_.isPointer(ast->type()))  {
-                lastIns_ = addr;
-            } else {
+//            if (frontend_.isPointer(ast->type()))  {
+//                lastIns_ = addr;
+//            } else {
                 append(new tvlm::Load{addr, getILType(ast->type()), ast});
-            }
+//            }
         }
     }
 
@@ -735,7 +735,7 @@ namespace tinyc {
 
         tvlm::Instruction * res;
         //resolve address from Pointer
-        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, false), getILType(type),ast));
+        tvlm::Instruction * loadAddr = append(new tvlm::Load( visitChild(ast->base, true), getILType(type),ast));
 
         //resolve access to member
         lastIns_ = resolveAccessToMember(
