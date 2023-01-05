@@ -120,7 +120,7 @@ namespace tinyc {
 
     private:
         tvlm::Instruction * resolveAssignment( Type *type, tvlm::Instruction *dstAddr,
-                                              tvlm::Instruction *srcVal, AST const *ast);
+                                              AST * srcVal, AST *ast);
 
 
         tvlm::Instruction *append(tvlm::Instruction *ins);

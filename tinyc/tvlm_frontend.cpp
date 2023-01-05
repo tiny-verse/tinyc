@@ -91,35 +91,40 @@ namespace tinyc {
                                               const AST * ast){
         tvlm::Instruction * offset = append(new tvlm::LoadImm((int64_t)strct->getFieldOffset(member), ast));
         tvlm::Instruction * addr = append(new tvlm::ElemAddrOffset(loadAddr, offset, ast));
-
-        if(!lvalue){ // lvalue means we need only address of member, otherwise load the value
-//            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType() );
-            auto resType  = strct->getFieldType(member);
-            return append(new tvlm::Load((tvlm::Instruction *)addr, resType, ast));
+        auto memberType = strct->getFieldType(member);
+        auto memberStruct = dynamic_cast<ILType::Type::Struct * >(memberType );
+        if(!lvalue && !(memberStruct) ){ // lvalue means we need only address of member, otherwise load the value
+            // member of type struct is always address -> no load necessary
+            //            tvlm::ResultType resType = ( strct->getFieldType(member)->registerType() );
+            return append(new tvlm::Load((tvlm::Instruction *)addr, memberType, ast));
         }
         return addr;
     }
 
     tvlm::Instruction * TvlmFrontend::resolveAssignment( Type *type, tvlm::Instruction *dstAddr,
-                                          tvlm::Instruction *srcVal, AST const *ast) {
+                                          AST *srcVal, AST *ast) {
         if (dynamic_cast<tinyc::Type::Alias *>(type)) {
             return resolveAssignment(dynamic_cast<tinyc::Type::Alias *>(type)->base(), dstAddr, srcVal, ast);
-        } else if (dynamic_cast<tinyc::Type::POD * >(type)) {
-            append(new tvlm::Store{srcVal, dstAddr, ast});
-            return srcVal;
-        } else if (dynamic_cast<tinyc::Type::Pointer * >(type)) {
-            append(new tvlm::Store{srcVal, dstAddr, ast});
-            return srcVal;
-        } else if (dynamic_cast<tinyc::Type::Struct * >(type)) {
+        } else if (auto pod = dynamic_cast<tinyc::Type::POD * >(type)) {
+            tvlm::Instruction * val = visitChild(srcVal, false);
+            append(new tvlm::Store{val, dstAddr, ast});
+            return val;
+        } else if (auto ptr = dynamic_cast<tinyc::Type::Pointer * >(type)) {
+            tvlm::Instruction * val = visitChild(srcVal, false);
+            append(new tvlm::Store{val, dstAddr, ast});
+            return val;
+        } else if (auto struc = dynamic_cast<tinyc::Type::Struct * >(type)) {
+            tvlm::Instruction * val = visitChild(srcVal, true);
             CType::Struct * strct = dynamic_cast<CType::Struct * >(type);
                ILType::Struct * tvlmStruct = dynamic_cast<ILType::Struct *>(getILType(strct));
-             return append(new tvlm::StructAssign(srcVal, dstAddr, tvlmStruct, ast));
+             return append(new tvlm::StructAssign(val, dstAddr, tvlmStruct, ast));
 
-            return srcVal;
+            return val;
 
-        } else if (dynamic_cast<Type::Fun * >(type)) {
-            append(new tvlm::Store{srcVal, dstAddr, ast});
-            return srcVal;
+        } else if (auto fun = dynamic_cast<Type::Fun * >(type)) {
+            tvlm::Instruction * val = visitChild(srcVal, false);
+            append(new tvlm::Store{val, dstAddr, ast});
+            return val;
         }
         throw "not implemented type";
         return nullptr;
@@ -141,8 +146,9 @@ namespace tinyc {
             }
             tvlm::Instruction *val = nullptr;
             if (ast->value != nullptr) {
-                val = visitChild(ast->value);
-                resolveAssignment( ast->value->type(), addr, val, ast);
+//                val = visitChild(ast->value);
+
+                resolveAssignment( ast->value->type(), addr, ast->value.get(), ast);
             }
             b_.addGlobalVariable(ast->name->name, addr);
             lastIns_ = val;
@@ -169,8 +175,8 @@ namespace tinyc {
             tvlm::Instruction *val = nullptr;
             if (ast->value != nullptr) {
 
-                val = visitChild(ast->value);
-                resolveAssignment( ast->value->type(), addr, val, ast);
+//                val = visitChild(ast->value, false);
+                resolveAssignment( ast->value->type(), addr, ast->value.get(), ast);
             }
             b_.addVariable(ast->name->name, addr);
 
@@ -620,7 +626,7 @@ namespace tinyc {
 
     void TvlmFrontend::visit(ASTAssignment *ast) {
         tvlm::Instruction *addr = visitChild(ast->lvalue, true);
-        tvlm::Instruction *val = visitChild(ast->value);
+//        tvlm::Instruction *val = visitChild(ast->value);
 
         Type *identifierType =
                 ast->lvalue->type();
@@ -629,8 +635,9 @@ namespace tinyc {
             throw ParserError(STR("assignment to not fully defined type " << ast->lvalue->type()->toString()),
                               ast->location(), false);
         }
-        resolveAssignment( identifierType, addr, val, ast);
-        lastIns_ = val;
+        tvlm::Instruction * res =
+                resolveAssignment( identifierType, addr, ast->value.get(), ast);
+        lastIns_ = res;
     }
 
     void TvlmFrontend::visit(ASTUnaryOp *ast) {
