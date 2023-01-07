@@ -9,7 +9,7 @@ struct DoublePair{                 // ASTStructDecl                 ->
 };
 
 Pair getFirst( DoublePair* p, int r){
-//    p->c.a = p->c.a + r;
+   p->c.a = p->c.a + r;
     return p->c;
 }
 
