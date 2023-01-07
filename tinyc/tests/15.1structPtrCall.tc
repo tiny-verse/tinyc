@@ -8,9 +8,9 @@ struct DoublePair{                 // ASTStructDecl                 ->
     int a;
 };
 
-Pair getFirst( DoublePair p, int r){
-    p.c.a = p.c.a + r;
-    return p.c;
+Pair getFirst( DoublePair* p, int r){
+//    p->c.a = p->c.a + r;
+    return p->c;
 }
 
 
@@ -27,7 +27,7 @@ int main(){                         // Function("main", Integer)
 
     Pair ip;
     print(cast<char>(dp.c.a));
-    ip = getFirst( dp, 50);
+    ip = getFirst( &dp, 50);
     print(cast<char>(dp.c.a));
     print('\n');
     return ip.a;
