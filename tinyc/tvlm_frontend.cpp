@@ -433,8 +433,17 @@ namespace tinyc {
     }
 
     void TvlmFrontend::visit(ASTReturn *ast) {
-        tvlm::Instruction *resultValue = ast->value ? visitChild(ast->value, false) : nullptr;
-        append(new tvlm::Return{resultValue, ast->value ? getILType(ast->value->type()) : getILType(frontend_.getTypeVoid()), ast});
+        if(ast->value){
+            tvlm::Instruction *resultValue ;
+            if(dynamic_cast<CType::Struct*>(ast->value->type())){
+                resultValue = visitChild(ast->value, true);
+            }else{
+                resultValue = visitChild(ast->value);
+            }
+            append(new tvlm::Return{resultValue, getILType(ast->value->type()), ast});
+        }else{
+            append(new tvlm::Return{nullptr, getILType(frontend_.getTypeVoid()), ast});
+        }
         // we have closed the basic block, so a new one has to be created
         b_.enterBasicBlock(b_.createBasicBlock());
         lastIns_ = nullptr;
@@ -754,7 +763,17 @@ namespace tinyc {
     void TvlmFrontend::visit(ASTCall *ast) {
         std::vector<std::pair< tvlm::Instruction *, tvlm::Type*>> argValues;
         for (auto &i: ast->args) {
-            argValues.push_back(std::make_pair(visitChild(i), getILType(i->type()) ));
+            auto ilType = getILType(i->type());
+            if(auto strctType= dynamic_cast<ILType::Struct*>(ilType)){
+                //copy of a struct
+                tvlm::Instruction * addr = visitChild(i, true);
+                tvlm::Instruction * cpy =
+                        append(new tvlm::AllocL{ilType ,nullptr, ast});
+                        append(new tvlm::StructAssign{addr,cpy, strctType , ast});
+                argValues.push_back(std::make_pair(cpy, getILType(i->type()) ));
+            }else{
+                argValues.push_back(std::make_pair(visitChild(i), getILType(i->type()) ));
+            }
         }
         if (auto i = dynamic_cast<ASTIdentifier *>(ast->function.get())) {
 
