@@ -3,7 +3,7 @@ int main(){                         // Function("main", Integer)
 
     double arr[10];
 
-    double b = 178.0;
+    double b = 178.5;
 
 //    arr[5] = b;
 //    arr[1] = b-15;
