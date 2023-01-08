@@ -1,0 +1,25 @@
+struct Pair{
+    int a;
+    int b;
+};
+
+int getFirst(  int  * r){
+     *r = 85;
+    return *r + 26;
+}
+
+
+
+int main(){                         // Function("main", Integer)
+
+    Pair pp;
+    pp.a = 72;
+    pp.b = 75;
+
+    int ip;
+    print(cast<char>(pp.b));
+    ip = getFirst(  &pp.b);
+    print(cast<char>(ip));
+    print('\n');
+    return pp.b;
+}

@@ -58,6 +58,7 @@ void prt(int a){
          break;
          }
      }
+    print('\n');
      return;
  }
 

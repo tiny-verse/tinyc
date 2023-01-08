@@ -1,0 +1,37 @@
+struct Pair{
+    int a;
+    int b;
+};
+
+struct DoublePair{                 // ASTStructDecl                 ->
+    Pair c;
+    int a;
+};
+
+Pair getFirst( DoublePair** pp, int r){
+    DoublePair * p = *pp;
+
+    p->c.a = p->c.a + r;
+    return p->c;
+}
+
+
+
+int main(){                         // Function("main", Integer)
+
+    DoublePair dp;
+    Pair pp;
+    pp.a = 72;
+    pp.b = 75;
+
+    dp.c = pp;
+    dp.a = 1353;
+
+    DoublePair * dpp = &dp;
+    Pair ip;
+    print(cast<char>(dp.c.a));
+    ip = getFirst( &dpp, 50);
+    print(cast<char>(dp.c.a));
+    print('\n');
+    return dpp->c.a;
+}
