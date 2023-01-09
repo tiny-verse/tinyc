@@ -98,7 +98,7 @@ int main(){                         // Function("main", Integer)
 
     double b = 5.0;
     int a = cast<int>(
-     fact(3.0)
+     fact(4.0)
     //b
     );
     if(a == 5) {

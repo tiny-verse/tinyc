@@ -119,8 +119,10 @@ namespace tinyc {
         }
 
     private:
-        tvlm::Instruction * resolveAssignment( Type *type, tvlm::Instruction *dstAddr,
-                                              AST * srcVal, AST *ast);
+        tvlm::Instruction * resolveValue(Type *type, AST * srcVal, AST *ast);
+
+        tvlm::Instruction * resolveAssignment(Type *type, tvlm::Instruction *dstAddr,
+                           tvlm::Instruction * srcVal, AST *ast);
 
 
         tvlm::Instruction *append(tvlm::Instruction *ins);
