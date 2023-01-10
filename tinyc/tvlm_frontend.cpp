@@ -176,8 +176,9 @@ namespace tinyc {
             }else {
                 addr = append(new tvlm::AllocG{getILType(ast->type->type()), nullptr, ast});
             }
-
-            resolveAssignment(ast->value->type(), addr, val, ast);
+            if (ast->value != nullptr) {
+                resolveAssignment(ast->value->type(), addr, val, ast);
+            }
             b_.addGlobalVariable(ast->name->name, addr);
             lastIns_ = val;
 
@@ -206,8 +207,9 @@ namespace tinyc {
             }else {
                 addr = append(new tvlm::AllocL{ilType ,nullptr, ast});
             }
-
-            resolveAssignment(ast->value->type(), addr, val, ast);
+            if (ast->value != nullptr) {
+                resolveAssignment(ast->value->type(), addr, val, ast);
+            }
             b_.addVariable(ast->name->name, addr);
 
             lastIns_ = val;
