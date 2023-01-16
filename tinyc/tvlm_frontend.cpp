@@ -692,20 +692,25 @@ namespace tinyc {
 
     void TvlmFrontend::visit(ASTUnaryOp *ast) {
 
-        tvlm::Instruction *operand = visitChild(ast->arg, true);
+        tvlm::Instruction *operand = nullptr;
         if (ast->op == Symbol::Sub) {
+            operand= visitChild(ast->arg);
             append(new tvlm::UnOp{tvlm::UnOpType::UNSUB, tvlm::Instruction::Opcode::UNSUB, operand, ast});
         } else if (ast->op == Symbol::Not ) {
+        operand= visitChild(ast->arg);
             append(new tvlm::BinOp{tvlm::BinOpType::EQ, tvlm::Instruction::Opcode::EQ, append(new tvlm::LoadImm{(int64_t) 0, ast}), operand, ast});
         }else if (ast->op == Symbol::Neg){
+        operand= visitChild(ast->arg);
             //operator ~
             append(new tvlm::UnOp{tvlm::UnOpType::NOT, tvlm::Instruction::Opcode::NOT, operand, ast});
         } else if (ast->op == Symbol::Inc) {
+        operand= visitChild(ast->arg);
             tvlm::Instruction *res = append(
                     new tvlm::UnOp{tvlm::UnOpType::INC, tvlm::Instruction::Opcode::INC, operand, ast});
             append(new tvlm::Store{res, visitChild(ast->arg, true), ast});
             lastIns_ = res;
         } else if (ast->op == Symbol::Dec) {
+        operand= visitChild(ast->arg);
             tvlm::Instruction *res = append(
                     new tvlm::UnOp{tvlm::UnOpType::DEC, tvlm::Instruction::Opcode::DEC, operand,ast});
             append(new tvlm::Store{res, visitChild(ast->arg, true), ast});

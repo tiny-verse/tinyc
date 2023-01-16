@@ -2,11 +2,14 @@
 
 int main(){                         // Function("main", Integer)
     int a, int b;
+    int cb[4+8];
     print('b');
     print('\n');
     a = cast <int> (scan());
     b = cast <int> (scan());
 
+    a++;
+    ++b;
     int c = a + b;
     int d = b - 65 && a++; // when 5A supplied outputs A 5
                            // when 5B                  B 6
