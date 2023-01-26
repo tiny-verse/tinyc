@@ -2,7 +2,7 @@
 
 int main(){                         // Function("main", Integer)
     int a, int b;
-    int cb[4+8];
+    int cb[a = 4];
     print('b');
     print('\n');
     a = cast <int> (scan());
