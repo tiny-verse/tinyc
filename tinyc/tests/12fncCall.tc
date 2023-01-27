@@ -1,3 +1,4 @@
+
 int prt(int a){
     int k = 6;
     int b = a - k; //172
