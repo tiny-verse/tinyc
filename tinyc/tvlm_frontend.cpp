@@ -311,11 +311,11 @@ namespace tinyc {
             tvlm::Instruction *condVal = visitChild(ast->cond);
             tvlm::ILBuilder::Context oldContext = b_.enterContext(tvlm::ILBuilder::Context::Switch(bAfter));
 
-            tvlm::BasicBlock *bCase = b_.createBasicBlock("bb_case" + std::to_string(ast->cases.begin()->first));
+            tvlm::BasicBlock *bCase = b_.createBasicBlock("bb_case_" + std::to_string(ast->cases.begin()->first));
             append(new tvlm::Jump(bCase, ast));
 
             tvlm::BasicBlock *bSuccessCmp =
-                    b_.createBasicBlock("bb_succ" + std::to_string(ast->cases.begin()->first));
+                    b_.createBasicBlock("bb_succ_" + std::to_string(ast->cases.begin()->first));
             tvlm::BasicBlock *defaultCaseBB = nullptr;
             for (auto it = ast->cases.begin(); it != ast->cases.end(); it++) {
                 auto &c = *it;

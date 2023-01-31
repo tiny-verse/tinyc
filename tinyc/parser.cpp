@@ -572,7 +572,12 @@ namespace tinyc {
         E_CAST := cast '<' TYPE '>' '(' EXPR ')'
         */
     std::unique_ptr<AST> Parser::F() {
-        if (top() == Token::Kind::Integer) {
+        if(top() == Symbol::ParOpen){
+            pop();
+            std::unique_ptr<AST> result{ std::move(EXPR())};
+            pop(Symbol::ParClose);
+            return result;
+        } else if (top() == Token::Kind::Integer) {
             return std::unique_ptr<AST>{new ASTInteger{pop()}};
         } else if (top() == Token::Kind::Double) {
             return std::unique_ptr<AST>{new ASTDouble{pop()}};
