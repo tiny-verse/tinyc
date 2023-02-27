@@ -30,5 +30,5 @@ int main(){                         // Function("main", Integer)
     ip = getFirst( dp, 50);
     print(cast<char>(dp.c.a));
     print('\n');
-    return ip.a;
+    return ip.a; //!122
 }

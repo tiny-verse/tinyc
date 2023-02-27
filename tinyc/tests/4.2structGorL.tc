@@ -1,0 +1,31 @@
+                            // AST                           ->  IL
+
+struct TMP{                 // ASTStructDecl                 ->
+    int a;
+    int b;
+    double c;
+};
+
+TMP glob;
+
+int main(){                 // ASTFunDecl                    ->  Function( "main" : name, Integer : type)
+
+    TMP a;                  // ASTVarDecl    // ASTType      ->  addr  = AllocL(16 : size)
+    TMP * b = &a;
+    a.a = 0;                // ASTIndetifier // ASTMember    ->
+                                             // ASTInteger   -> v1     = LoadImm(0)
+                                             // ASTAssignment-> Store(v1 : value, addr + 0 : address)
+
+    a.b = 10;               // ASTIdentifier // ASTMember    ->
+                                             // ASTInteger   -> v2     = LoadImm(10)
+                                             // ASTAssignment-> Store(v2, addr + 4)
+    b->b = 15;
+    b = &glob;
+    b->b = 17  + a.b;
+
+
+    return glob.b;             // ASTReturn     // ASTIdentifier // ASTMember
+                                             //              -> t1 = Load(addr + 4, Integer)
+                                             //              -> Return(t1)
+    //! 10
+}
