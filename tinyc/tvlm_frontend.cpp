@@ -234,8 +234,9 @@ namespace tinyc {
 //        std::vector<tvlm::Instruction *> arguments;
         for (size_t i = 0, e = ast->args.size(); i != e; ++i) {
             auto ctype = ast->args[i].first.get()->type();
+            auto inttype = getILType(frontend_.getTypeInt());
             auto type = getILType(ctype);
-            tvlm::Instruction * arg = append(new tvlm::ArgAddr{i, type, ast->args[i].first.get()});
+            tvlm::Instruction * arg = append(new tvlm::ArgAddr{i, inttype, ast->args[i].first.get()});
             if(dynamic_cast< ILType::Struct*>(type )){
                 tvlm::Instruction * argValue = append(new tvlm::Load{arg, type,ast->args[i].first.get()});
                 arg = argValue;
