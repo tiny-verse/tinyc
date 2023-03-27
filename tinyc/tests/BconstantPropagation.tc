@@ -1,0 +1,22 @@
+int abs(int n) {
+    if (n < 0) {
+        return -n;
+    } else {
+        return n;
+    }
+    return 0;
+}
+
+int main() {
+    int n = 5;
+    int m = -7;
+
+    int abs_n = abs(n);
+    int abs_m = abs(m);
+
+    int k = 10;
+    int n_times_k = n * k;
+    int m_times_k = m * k;
+
+    return m_times_k;
+}

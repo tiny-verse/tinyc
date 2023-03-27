@@ -1,0 +1,27 @@
+
+int add(int a, int b ){
+    return a + b;
+}
+
+int sub(int a, int b){
+    return a - b;
+}
+
+void prnt(int a ){
+    char b = cast<char>(a);
+    print(b);
+    print('\n');
+    return;
+}
+
+int main(){                         // Function("main", Integer)
+
+    int a = 85;
+    int b = 10;
+
+    prnt(add(a, b));
+    prnt(sub(a, b));
+    prnt(a + b);
+    prnt(a - b);
+    return 0;
+}
