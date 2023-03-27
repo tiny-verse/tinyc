@@ -49,7 +49,7 @@ namespace tinyc {
 #elif (defined OPTIMIZER_tvlm)
         /** The Tiny Virtual Low-level Machine Optimizer translator.
          */
-        using IL = tvlm::ILBuilder;
+        using IL = tvlm::Program;
         IL compileToIl(AST && ast) {
             tinyc::AST * rootNode = dynamic_cast<tinyc::AST*>(ast.get());
             // typecheck the ast and store type declarations
@@ -61,7 +61,7 @@ namespace tinyc {
             std::stringstream ss;
             auto printer = tiny::ASTPrettyPrinter(ss);
 
-            return tmp;
+            return  tmp.finish();
             //throw "not_implemented";
         }
 #else
