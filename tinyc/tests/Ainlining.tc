@@ -1,4 +1,4 @@
-
+// 95
 int add(int a, int b ){
     return a + b;
 }
@@ -23,5 +23,5 @@ int main(){                         // Function("main", Integer)
     prnt(sub(a, b));
     prnt(a + b);
     prnt(a - b);
-    return 0;
+    return a+b;
 }
