@@ -1,7 +1,6 @@
 //! 72
                                     // AST                           -> IL
 
-// TODO --"String" is not viable for parser
 
 int main(){                         // Function("main", Integer)
     char * str = "Hello world!";      // ASTVardecl   // ASTType     -> addr = AllocL(4 : size)
