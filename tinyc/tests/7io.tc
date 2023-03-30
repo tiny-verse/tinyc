@@ -5,5 +5,4 @@ int main(){                         // Function("main", Integer)
     a = cast<int>(scan());
     print(cast<char>(a));
     return a;
-    //! 6
 }

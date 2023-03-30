@@ -27,5 +27,5 @@ int main(){                 // ASTFunDecl                    ->  Function( "main
     return glob.b;             // ASTReturn     // ASTIdentifier // ASTMember
                                              //              -> t1 = Load(addr + 4, Integer)
                                              //              -> Return(t1)
-    //! 10
+    //! 32
 }

@@ -1,3 +1,4 @@
+//! 5
                 // AST                          ->  IL
 
 int main(){     // ASTFunDecl                   ->  Function
@@ -12,4 +13,3 @@ int main(){     // ASTFunDecl                   ->  Function
     return ***aaaa;   // ASTReturn   // ASTIdentifier ->  a     = Load(addr, Integer)
                               //                ->  Return(a : retValue)
 }
-    //! 5

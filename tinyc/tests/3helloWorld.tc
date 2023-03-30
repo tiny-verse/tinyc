@@ -1,3 +1,4 @@
+//! 72
                                     // AST                           -> IL
 
 // TODO --"String" is not viable for parser
@@ -15,5 +16,5 @@ int main(){                         // Function("main", Integer)
                                                                   // -> a1.offset(v1);
                                                                   // -> t1   = Load(a1, Integer)
                                                                   // ->  Return(t1 : retValue)
-    //! 72 //~ascii for 'H'
+    //! 101 //~ascii for 'e'
 }

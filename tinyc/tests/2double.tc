@@ -1,3 +1,4 @@
+//! 1
                             // AST                           ->  IL
 
 double b = 1.2;             // ASTVarDecl   // ASTType       -> gaddr  = AllocG(8 : size)
@@ -10,4 +11,3 @@ int main(){                 // ASTFunDecl                    ->  Function( "main
     return a;               // ASTReturn   // ASTIdentifier  ->  a     = Load(addr, Integer)
                                            //                ->  Return(a : retValue)
 }
-    //! 1
